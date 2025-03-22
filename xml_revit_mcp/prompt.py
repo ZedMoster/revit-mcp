@@ -1,68 +1,68 @@
 from mcp.server import Server
 import mcp.types as types
 
-# 定义可用的提示
+# Define available prompts
 PROMPTS = {
     "create-walls": types.Prompt(
         name="create-walls",
-        description="在 Revit 中创建墙体",
+        description="Create walls in Revit",
         arguments=[
             types.PromptArgument(
                 name="startX",
-                description="墙体起点 X 坐标（毫米）",
+                description="Wall start X coordinate (mm)",
                 required=True
             ),
             types.PromptArgument(
                 name="startY",
-                description="墙体起点 Y 坐标（毫米）",
+                description="Wall start Y coordinate (mm)",
                 required=True
             ),
             types.PromptArgument(
                 name="endX",
-                description="墙体终点 X 坐标（毫米）",
+                description="Wall end X coordinate (mm)",
                 required=True
             ),
             types.PromptArgument(
                 name="endY",
-                description="墙体终点 Y 坐标（毫米）",
+                description="Wall end Y coordinate (mm)",
                 required=True
             ),
             types.PromptArgument(
                 name="height",
-                description="墙体高度（毫米），必须为正数",
+                description="Wall height (mm), must be positive",
                 required=True
             ),
             types.PromptArgument(
                 name="width",
-                description="墙体宽度（毫米），必须为正数",
+                description="Wall width (mm), must be positive",
                 required=True
             )
         ],
     ),
     "update-elements": types.Prompt(
         name="update-elements",
-        description="更新 Revit 元素的参数",
+        description="Update Revit element parameters",
         arguments=[
             types.PromptArgument(
                 name="elementId",
-                description="要更新的元素 ID",
+                description="Element ID to update",
                 required=True
             ),
             types.PromptArgument(
                 name="parameterName",
-                description="要更新的参数名称",
+                description="Name of the parameter to update",
                 required=True
             ),
             types.PromptArgument(
                 name="parameterValue",
-                description="参数的新值",
+                description="New value for the parameter",
                 required=True
             )
         ],
     )
 }
 
-# 初始化服务器
+# Initialize server
 app = Server("revit-tools-server")
 
 @app.list_prompts()
@@ -77,12 +77,12 @@ async def get_prompt(
         raise ValueError(f"Prompt not found: {name}")
 
     if name == "create-walls":
-        params_str = "参数详情：\n"
+        params_str = "Parameter details:\n"
         if arguments:
-            params_str += f"- 起点：({arguments.get('startX', '?')}, {arguments.get('startY', '?')})\n"
-            params_str += f"- 终点：({arguments.get('endX', '?')}, {arguments.get('endY', '?')})\n"
-            params_str += f"- 高度：{arguments.get('height', '?')} mm\n"
-            params_str += f"- 宽度：{arguments.get('width', '?')} mm"
+            params_str += f"- Start Point: ({arguments.get('startX', '?')}, {arguments.get('startY', '?')})\n"
+            params_str += f"- End Point: ({arguments.get('endX', '?')}, {arguments.get('endY', '?')})\n"
+            params_str += f"- Height: {arguments.get('height', '?')} mm\n"
+            params_str += f"- Width: {arguments.get('width', '?')} mm"
 
         return types.GetPromptResult(
             messages=[
@@ -90,18 +90,18 @@ async def get_prompt(
                     role="user",
                     content=types.TextContent(
                         type="text",
-                        text=f"创建墙体，具体参数如下：\n\n{params_str}"
+                        text=f"Create wall with the following details:\n\n{params_str}"
                     )
                 )
             ]
         )
 
     if name == "update-elements":
-        params_str = "更新详情：\n"
+        params_str = "Update details:\n"
         if arguments:
-            params_str += f"- 元素 ID：{arguments.get('elementId', '?')}\n"
-            params_str += f"- 参数名称：{arguments.get('parameterName', '?')}\n"
-            params_str += f"- 新值：{arguments.get('parameterValue', '?')}"
+            params_str += f"- Element ID: {arguments.get('elementId', '?')}\n"
+            params_str += f"- Parameter Name: {arguments.get('parameterName', '?')}\n"
+            params_str += f"- New Value: {arguments.get('parameterValue', '?')}"
 
         return types.GetPromptResult(
             messages=[
@@ -109,7 +109,7 @@ async def get_prompt(
                     role="user",
                     content=types.TextContent(
                         type="text",
-                        text=f"更新元素参数：\n\n{params_str}"
+                        text=f"Update element parameter with the following details:\n\n{params_str}"
                     )
                 )
             ]
