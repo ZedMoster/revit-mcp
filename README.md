@@ -1,5 +1,7 @@
 # Revit MCP
 
+[![Last Commit](https://img.shields.io/github/last-commit/ZedMoster/revit-mcp/dev?style=for-the-badge)](https://github.com/ZedMoster/revit-mcp/commits/main)
+
 ## Overview
 
 Revit MCP is a Python package that provides integration with Revit through the Model Context Protocol (MCP). It allows you to send commands to Revit and receive responses, enabling automation and interaction with Revit models.
