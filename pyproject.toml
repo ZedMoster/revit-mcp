@@ -1,6 +1,6 @@
 [project]
 name = "revit-mcp"
-version = "0.0.9"
+version = "0.0.10"
 description = "revit integration through the Model Context Protocol"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.scripts]
-revit-mcp = "xml_revit_mcp.xml_revit_mcp_server:main"
+revit-mcp = "xml_revit_mcp.server:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]

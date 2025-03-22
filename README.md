@@ -33,7 +33,9 @@ Otherwise installation instructions are on their website: [Install uv](https://d
 
 Watch the setup instruction video (Assuming you have already installed uv)
 
-Go to Claude > Settings > Developer > Edit Config > claude_desktop_config.json
+Go to Claude > Settings > Developer > Edit Config.
+
+edit `claude_desktop_config.json`
 
  to include the following:
 
@@ -56,8 +58,19 @@ Run **revit-mcp** without installing it permanently through uvx.
 
 Go to Cursor Settings > MCP and paste this as a command.
 
-```bash
-uvx revit-mcp
+edit `mcp.json`
+
+```json
+{
+    "mcpServers": {
+        "RevitMCPServer": {
+            "command": "uvx",
+            "args": [
+                "revit-mcp"
+            ]
+        }
+    }
+}
 ```
 
 ### cline
@@ -66,15 +79,15 @@ You can use the cline command to run the command line interface of Revit MCP.
 
 edit `cline_mcp_setting.json`
 
-```bash
+```json
 {
-  "mcpServers": {
-    "RevitMCPServer": {
-      "command": "uvx",
-      "args": [
-        "revit-mcp"
-      ]
+    "mcpServers": {
+        "RevitMCPServer": {
+            "command": "uvx",
+            "args": [
+                "revit-mcp"
+            ]
+        }
     }
-  }
 }
 ```
