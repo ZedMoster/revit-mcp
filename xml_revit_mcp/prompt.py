@@ -62,16 +62,13 @@ PROMPTS = {
     )
 }
 
-# Initialize server
-app = Server("revit-tools-server")
 
-@app.list_prompts()
-async def list_prompts() -> list[types.Prompt]:
+async def list_prompts_response() -> list[types.Prompt]:
     return list(PROMPTS.values())
 
-@app.get_prompt()
-async def get_prompt(
-    name: str, arguments: dict[str, str] | None = None
+
+async def get_prompt_response(
+        name: str, arguments: dict[str, str] | None = None
 ) -> types.GetPromptResult:
     if name not in PROMPTS:
         raise ValueError(f"Prompt not found: {name}")

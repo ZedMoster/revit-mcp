@@ -2,7 +2,7 @@
 
 __name__ = "xml_revit_mcp"
 __author__ = "zedmoster"
-__version__ = "0.0.10"
+__version__ = "0.1.0"
 
 from .server import mcp, main
 from .tools import create_walls, update_elements

@@ -1,12 +1,9 @@
-import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Dict, Any
-from mcp.server.fastmcp import FastMCP, Context
-import mcp.types as types
-
+from mcp.server.fastmcp import FastMCP
 from .revit_connection import RevitConnection
-from .tools import create_walls, update_elements, asset_creation_strategy
-from .prompt import *
+from .prompt import list_prompts_response, get_prompt_response
+from .tools import *
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -78,24 +75,16 @@ mcp = FastMCP(
     lifespan=server_lifespan
 )
 
-
-async def list_prompts() -> list[types.Prompt]:
-    """List available prompts"""
-    return get_available_prompts()
-
-
-async def get_prompt(name: str, arguments: Dict[str, Any] = None) -> types.GetPromptResult:
-    """Get prompt details"""
-    return get_prompt_response(name, arguments)
-
-
 # Register prompts
-mcp.list_prompts_handler = list_prompts
-mcp.get_prompt_handler = get_prompt
+mcp.list_prompts_handler = list_prompts_response
+mcp.get_prompt_handler = get_prompt_response
 
 # Register tools
-mcp.tool()(create_walls)
+mcp.tool()(find_elements)
 mcp.tool()(update_elements)
+mcp.tool()(delete_elements)
+mcp.tool()(show_elements)
+mcp.tool()(create_walls)
 
 
 def main():
