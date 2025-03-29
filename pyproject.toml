@@ -1,0 +1,33 @@
+[project]
+name = "revit-mcp"
+version = "0.3.3"
+description = "revit integration through the Model Context Protocol"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    {name = "zedmoster", email = "zedmoster1@gmail.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License", 
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "mcp[cli]>=1.3.0",
+    "mcp>=1.3.0",
+]
+
+[project.scripts]
+revit-mcp = "xml_revit_mcp.server:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["xml_revit_mcp"]
+
+[project.urls]
+"Homepage" = "https://github.com/zedmoster/revit-mcp"
+"Bug Tracker" = "https://github.com/zedmoster/revit-mcp/issues"
