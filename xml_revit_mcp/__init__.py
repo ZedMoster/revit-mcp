@@ -6,7 +6,7 @@
 
 __name__ = "revit-mcp"
 __author__ = "zedmoster"
-__version__ = "0.3.3"
+__version__ = "0.3.7"
 __license__ = "MIT"
 __copyright__ = "Copyright (c) 2025 zedmoster"
 __description__ = "Revit integration through the Model Context Protocol."

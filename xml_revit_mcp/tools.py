@@ -6,7 +6,7 @@ from typing import List
 from mcp.server.fastmcp import Context
 
 
-def call_func(ctx: Context, method: str = "CallFunc", params: List[str] = None) -> str:
+def call_func(ctx: Context, method: str = "CallFunc", params: List[str] = None) -> dict:
     """
     调用Revit函数服务，支持多种功能操作，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -20,11 +20,10 @@ def call_func(ctx: Context, method: str = "CallFunc", params: List[str] = None) 
     参数:
         ctx (Context): FastMCP上下文对象
         method (str): JSON-RPC方法名，默认为"CallFunc"
-        params (List[Dict]): 函数调用参数列表，每个字典包含:
-            - func (List[str]): 要调用的函数列表，支持:
-                - "ClearDuplicates": 清理重复元素
-                - "DeleteZeroRooms": 清理面积=0或未放置的房间
-                - "DimensionViewPlanGrids": 标注楼层平面轴网两道尺寸线
+        params (List[str]): 要调用的函数列表，支持:
+            - "ClearDuplicates": 清理重复元素
+            - "DeleteZeroRooms": 清理面积=0或未放置的房间
+            - "DimensionViewPlanGrids": 标注楼层平面轴网两道尺寸线
 
     返回:
         dict: JSON-RPC 2.0格式的响应，结构为:
@@ -55,12 +54,10 @@ def call_func(ctx: Context, method: str = "CallFunc", params: List[str] = None) 
 
     示例:
         # 标注楼层平面轴网尺寸
-        response = call_func(ctx, params=[{"func": ["DimensionViewPlanGrids"]}])
+        response = call_func(ctx, params=["DimensionViewPlanGrids"])
 
         # 组合多个功能
-        response = call_func(ctx, params=[{
-            "func": ["ClearDuplicates", "DimensionViewPlanGrids"]
-        }])
+        response = call_func(ctx, params=["ClearDuplicates", "DimensionViewPlanGrids"])
 
         # 输出示例
         {
@@ -80,33 +77,25 @@ def call_func(ctx: Context, method: str = "CallFunc", params: List[str] = None) 
         if not params:
             raise ValueError("参数不能为空列表")
 
-        validated_params = []
         supported_functions = [
             "ClearDuplicates",
             "DeleteZeroRooms",
             "DimensionViewPlanGrids"
         ]
 
-        for param in params:
-            if "func" not in param:
-                raise ValueError("每个参数字典必须包含'func'字段")
-
-            if not isinstance(param["func"], list):
-                raise ValueError("'func'字段应为字符串列表")
-
+        valid_funcs = []
+        for func in params:
             # 验证并过滤支持的函数
-            valid_funcs = []
-            for func in param["func"]:
-                if not isinstance(func, str):
-                    raise ValueError("函数名必须是字符串")
-                if func not in supported_functions:
-                    raise ValueError(f"不支持的函数: {func}")
-                valid_funcs.append(func)
+            if not isinstance(func, str):
+                raise ValueError("函数名必须是字符串")
+            if func not in supported_functions:
+                raise ValueError(f"不支持的函数: {func}")
+            valid_funcs.append(func)
 
-            if not valid_funcs:
-                raise ValueError("至少需要指定一个支持的函数")
+        if not valid_funcs:
+            raise ValueError("至少需要指定一个支持的函数")
 
-            validated_params.append({"func": valid_funcs})
+        validated_params = [{"func": valid_funcs}]
 
         # 执行函数调用
         from .server import get_Revit_connection
@@ -114,12 +103,31 @@ def call_func(ctx: Context, method: str = "CallFunc", params: List[str] = None) 
         result_data = revit.send_command(method, validated_params)
         return result_data
 
+    except ValueError as ve:
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32600,  # Invalid Request
+                "message": str(ve),
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
     except Exception as e:
         ctx.log("error", f"API调用失败: {str(e)}")
-        return f"API调用失败: {str(e)}"
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,  # Internal error
+                "message": f"API调用失败: {str(e)}",
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
 
 
-def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[str, any]] = None) -> str:
+def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[str, any]] = None) -> dict:
     """
     在Revit中按类别查找元素，返回匹配的元素ID列表，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -139,13 +147,21 @@ def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[
             - isInstance (bool): True查找实例,False查找类型
 
     返回:
-        str: JSON-RPC 2.0格式的响应字符串，结构为:
+        dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
                 "result": [匹配的元素ID列表],
                 "id": request_id
             }
-            失败时: 标准JSON-RPC错误响应
+            失败时: {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": 错误代码,
+                    "message": 错误描述,
+                    "data": 错误详情
+                },
+                "id": request_id
+            }
 
     错误代码:
         -32600: 无效请求（参数验证失败）
@@ -155,14 +171,17 @@ def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[
 
     示例:
         >>> response = find_elements(ctx, params=[
-        ...     {"categoryName": "OST_Doors", "isInstance": False}
-        ...     {"categoryName": "门", "isInstance": True},
+        ...     {"categoryName": "OST_Doors", "isInstance": False},
+        ...     {"categoryName": "门", "isInstance": True}
         ... ])
         >>> print(response)
-        '{"jsonrpc": "2.0", "result": [123456, 789012], "id": 1}'
+        {"jsonrpc": "2.0", "result": [123456, 789012], "id": 1}
     """
     try:
         # 参数验证
+        if not params:
+            raise ValueError("参数错误：'params'不能为空")
+
         if not isinstance(params, list) or not all(isinstance(param, dict) for param in params):
             raise ValueError("参数必须为字典列表")
 
@@ -170,7 +189,7 @@ def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[
         for param in params:
             # 验证categoryName
             if "categoryName" not in param or not isinstance(param["categoryName"], str):
-                raise ValueError("categoryName为必填项且必须是字符串")
+                raise ValueError("categoryName为必填项且必须是字符串,必须是BuiltInCategory枚举值或Category.Name")
 
             # 验证isInstance
             if "isInstance" not in param or not isinstance(param["isInstance"], bool):
@@ -186,12 +205,23 @@ def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[
         result = revit.send_command(method, validated_params)
         return result
 
+    except ValueError as ve:
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {"code": -32600, "message": str(ve)},
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
     except Exception as e:
         ctx.log("error", f"查找元素时发生错误: {str(e)}")
-        return f"查找元素时发生错误：{str(e)}"
+        return {
+            "jsonrpc": "2.0",
+            "error": {"code": -32603, "message": f"查找元素时发生错误: {str(e)}"},
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
 
 
-def update_elements(ctx: Context, method: str = "UpdateElements", params: list[dict[str, any]] = None) -> str:
+def update_elements(ctx: Context, method: str = "UpdateElements", params: list[dict[str, any]] = None) -> dict:
     """
     批量更新Revit元素参数值，遵循JSON-RPC 2.0规范，支持事务处理。
     mcp_tool使用时params不要有任何注释信息
@@ -211,7 +241,7 @@ def update_elements(ctx: Context, method: str = "UpdateElements", params: list[d
             - parameterValue (str): 参数新值
 
     返回:
-        str: JSON-RPC 2.0格式的响应字符串，结构为:
+        dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
                 "result": [成功更新的元素ID列表],
@@ -240,12 +270,12 @@ def update_elements(ctx: Context, method: str = "UpdateElements", params: list[d
         ...     {"elementId": "789012", "parameterName": "Height", "parameterValue": "3000"}
         ... ])
         >>> print(response)
-        '{"jsonrpc":"2.0","result":[123456,789012],"id":1}'
+        {"jsonrpc":"2.0","result":[123456,789012],"id":1}
 
         >>> # 错误情况示例
         >>> response = update_elements(ctx, params=[{"elementId":999999,"parameterName":"InvalidParam","parameterValue":"X"}])
         >>> print(response)
-        '{"jsonrpc":"2.0","error":{"code":-32602,"message":"参数无效","data":"参数'InvalidParam'不存在"},"id":1}'
+        {"jsonrpc":"2.0","error":{"code":-32602,"message":"参数无效","data":"参数'InvalidParam'不存在"},"id":1}
 
     事务说明:
         所有更新操作在Revit事务组中执行，任一更新失败自动跳过。
@@ -273,12 +303,31 @@ def update_elements(ctx: Context, method: str = "UpdateElements", params: list[d
         result = revit.send_command(method, validated_params)
         return result
 
+    except ValueError as ve:
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32602,  # Invalid params
+                "message": str(ve),
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
     except Exception as e:
         ctx.log("error", f"更新元素失败: {str(e)}")
-        return f"更新元素失败: {str(e)}"
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,  # Internal error
+                "message": f"更新元素失败: {str(e)}",
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
 
 
-def delete_elements(ctx: Context, method: str = "DeleteElements", params: List[dict[str, any]] = None) -> str:
+def delete_elements(ctx: Context, method: str = "DeleteElements", params: List[dict[str, any]] = None) -> dict:
     """
     批量删除Revit元素，支持字典格式参数，支持批量操作并遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -315,21 +364,42 @@ def delete_elements(ctx: Context, method: str = "DeleteElements", params: List[d
         '{"jsonrpc":"2.0","result":[5943,5913,212831],"id":1}'
     """
     try:
-        # 参数验证：确保params为整型元素ID列表
-        if not params or not all(isinstance(el_id, int) for el_id in params):
-            raise ValueError("参数错误：'params' 应为整型元素ID列表。")
+        # 参数验证
+        if not params:
+            raise ValueError("参数错误：'params'不能为空")
+
+        validated_params = []
+        for param in params:
+            if "elementId" not in param:
+                raise ValueError("每个参数字典必须包含'elementId'")
+
+            # 统一转为字符串以匹配服务器处理逻辑
+            validated_params.append({
+                "elementId": str(param["elementId"])
+            })
 
         from .server import get_Revit_connection
         revit = get_Revit_connection()
-        result = revit.send_command(method, params)
+        result = revit.send_command(method, validated_params)
         return result
 
+    except ValueError as ve:
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {"code": -32602, "message": str(ve)},
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
     except Exception as e:
         ctx.log("error", f"删除元素时发生错误: {str(e)}")
-        return f"删除元素时发生错误：{str(e)}"
+        return {
+            "jsonrpc": "2.0",
+            "error": {"code": -32603, "message": str(e)},
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
 
 
-def show_elements(ctx: Context, method: str = "ShowElements", params: List[dict[str, any]] = None) -> str:
+def show_elements(ctx: Context, method: str = "ShowElements", params: List[dict[str, any]] = None) -> dict:
     """
     在Revit视图中高亮显示指定元素，支持批量操作并遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -348,7 +418,7 @@ def show_elements(ctx: Context, method: str = "ShowElements", params: List[dict[
             - elementId (Union[int, str]): 要显示的元素ID
 
     返回:
-        str: JSON-RPC 2.0格式的响应字符串，结构为:
+        dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
                 "result": [成功显示的元素ID列表],
@@ -377,7 +447,7 @@ def show_elements(ctx: Context, method: str = "ShowElements", params: List[dict[
         ...     {"elementId": "212792"}
         ... ])
         >>> print(response)
-        '{"jsonrpc":"2.0","result":[212781,212792],"id":1}'
+        {"jsonrpc":"2.0","result":[212781,212792],"id":1}
 
     视图操作:
         成功调用后，元素将在当前视图中:
@@ -405,9 +475,28 @@ def show_elements(ctx: Context, method: str = "ShowElements", params: List[dict[
         result_data = revit.send_command(method, validated_params)
         return result_data
 
+    except ValueError as ve:
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32600,  # Invalid Request
+                "message": str(ve),
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
     except Exception as e:
         ctx.log("error", f"显示元素时发生错误: {str(e)}")
-        return f"显示元素时发生错误：{str(e)}"
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,  # Internal error
+                "message": f"显示元素时发生错误: {str(e)}",
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
 
 
 def active_view(ctx: Context, method: str = "ActiveView", params: List[dict[str, any]] = None) -> dict:
@@ -521,7 +610,7 @@ def active_view(ctx: Context, method: str = "ActiveView", params: List[dict[str,
         return error_response
 
 
-def parameter_elements(ctx: Context, method: str = "ParameterElements", params: List[dict[str, any]] = None) -> str:
+def parameter_elements(ctx: Context, method: str = "ParameterElements", params: List[dict[str, any]] = None) -> dict:
     """
     获取Revit元素的参数信息，支持批量查询和特定参数查询，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -604,17 +693,46 @@ def parameter_elements(ctx: Context, method: str = "ParameterElements", params: 
         for param in params:
             if "elementId" not in param:
                 raise ValueError("每个参数字典必须包含'elementId'")
+
+            # 统一转换elementId为字符串
             element_id = str(param["elementId"])
-            validated_params.append({"elementId": element_id})
+            validated_param = {"elementId": element_id}
+
+            # 处理可选的parameterName参数
+            if "parameterName" in param:
+                if not isinstance(param["parameterName"], str):
+                    raise ValueError("'parameterName'必须是字符串")
+                validated_param["parameterName"] = param["parameterName"]
+
+            validated_params.append(validated_param)
 
         from .server import get_Revit_connection
         revit = get_Revit_connection()
         result = revit.send_command(method, validated_params)
         return result
 
+    except ValueError as ve:
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32602,  # Invalid params
+                "message": str(ve),
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
     except Exception as e:
         ctx.log("error", f"获取元素参数时发生错误: {str(e)}")
-        return f"错误：{str(e)}"
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,  # Internal error
+                "message": f"获取元素参数时发生错误: {str(e)}",
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
 
 
 def get_location(ctx: Context, method: str = "GetLocations", params: List[dict[str, any]] = None) -> dict:
@@ -760,7 +878,7 @@ def get_location(ctx: Context, method: str = "GetLocations", params: List[dict[s
         return error_response
 
 
-def create_levels(ctx: Context, method: str = "CreateLevels", params: List[dict[str, any]] = None) -> str:
+def create_levels(ctx: Context, method: str = "CreateLevels", params: List[dict[str, any]] = None) -> dict:
     """
     在Revit中创建标高，支持批量创建，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -840,12 +958,31 @@ def create_levels(ctx: Context, method: str = "CreateLevels", params: List[dict[
         result = revit.send_command(method, validated_params)
         return result
 
+    except ValueError as ve:
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32602,  # Invalid params
+                "message": str(ve),
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
     except Exception as e:
         ctx.log("error", f"创建标高时发生错误: {str(e)}")
-        return f"错误：{str(e)}"
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,  # Internal error
+                "message": f"创建标高时发生错误: {str(e)}",
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
 
 
-def create_grids(ctx: Context, method: str = "CreateGrids", params: List[dict[str, any]] = None) -> str:
+def create_grids(ctx: Context, method: str = "CreateGrids", params: List[dict[str, any]] = None) -> dict:
     """
     在Revit中创建轴网，支持直线轴网和弧线轴网，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -962,12 +1099,31 @@ def create_grids(ctx: Context, method: str = "CreateGrids", params: List[dict[st
         result = revit.send_command(method, validated_params)
         return result
 
+    except ValueError as ve:
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32602,  # Invalid params
+                "message": str(ve),
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
     except Exception as e:
         ctx.log("error", f"创建轴网时发生错误: {str(e)}")
-        return f"错误：{str(e)}"
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,  # Internal error
+                "message": f"创建轴网时发生错误: {str(e)}",
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
 
 
-def create_walls(ctx: Context, method: str = "CreateWalls", params: List[dict[str, any]] = None) -> str:
+def create_walls(ctx: Context, method: str = "CreateWalls", params: List[dict[str, any]] = None) -> dict:
     """
     在Revit中创建墙体，支持批量创建，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -1228,9 +1384,6 @@ def create_room_tags(ctx: Context, method: str = "CreateRoomTags", params: List[
         for param in params:
             if "elementId" not in param:
                 raise ValueError("每个参数字典必须包含'elementId'")
-            if not isinstance(param["elementId"], (int, str)):
-                raise ValueError("'elementId'必须是整数或字符串")
-
             validated_params.append({
                 "elementId": str(param["elementId"])  # 统一转为字符串以匹配服务器处理
             })
@@ -1264,11 +1417,11 @@ def create_room_tags(ctx: Context, method: str = "CreateRoomTags", params: List[
             },
             "id": ctx.request_id if hasattr(ctx, "request_id") else 1
         }
-        ctx.log("error", f"创建房间标签时发生错误: {str(e)}", exc_info=True)
+        ctx.log("error", f"创建房间标签时发生错误: {str(e)}")
         return error_response
 
 
-def create_floors(ctx: Context, method: str = "CreateFloors", params: List[dict[str, any]] = None) -> str:
+def create_floors(ctx: Context, method: str = "CreateFloors", params: List[dict[str, any]] = None) -> dict:
     """
     在Revit中创建楼板，支持批量创建，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -1397,15 +1550,34 @@ def create_floors(ctx: Context, method: str = "CreateFloors", params: List[dict[
         result = revit.send_command(method, validated_params)
         return result
 
+    except ValueError as ve:
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32602,  # Invalid params
+                "message": str(ve),
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
     except Exception as e:
-        ctx.log("error", f"创建楼板时发生错误: {str(e)}", exc_info=True)
-        return f"错误：{str(e)}"
+        ctx.log("error", f"创建楼板时发生错误: {str(e)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,  # Internal error
+                "message": f"创建楼板时发生错误: {str(e)}",
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
 
 
-def create_door_windows(ctx: Context, method: str = "CreateDoorWindows", params: List[dict[str, any]] = None) -> str:
+def create_door_windows(ctx: Context, method: str = "CreateDoorWindows", params: List[dict[str, any]] = None) -> dict:
     """
     在Revit中创建门窗族实例，支持批量创建，遵循JSON-RPC 2.0规范。
-    mcp_tool使用时params中不要有任何注释信息
+    mcp_tool使用时params不要有任何注释信息
 
     特性:
     - 支持批量创建多个门窗族实例
@@ -1445,12 +1617,12 @@ def create_door_windows(ctx: Context, method: str = "CreateDoorWindows", params:
             {
                 "categoryName": "窗",
                 "familyName": "固定窗",
-                "name": "900 x 1200mm",
+                "name": "0915 x 1220mm",
                 "startX": 8000,
                 "startY": 2500,
                 "startZ": 1000,
                 "hostId": "123456",
-                "offset": "800"
+                "offset": "900"
             }
         ])
     """
@@ -1511,7 +1683,7 @@ def create_door_windows(ctx: Context, method: str = "CreateDoorWindows", params:
         }
 
 
-def create_ducts(ctx: Context, method: str = "CreateDucts", params: List[dict[str, any]] = None) -> str:
+def create_ducts(ctx: Context, method: str = "CreateDucts", params: List[dict[str, any]] = None) -> dict:
     """
     在Revit中创建风管，支持批量创建，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -1630,7 +1802,7 @@ def create_ducts(ctx: Context, method: str = "CreateDucts", params: List[dict[st
         }
 
 
-def create_pipes(ctx: Context, method: str = "CreatePipes", params: List[dict[str, any]] = None) -> str:
+def create_pipes(ctx: Context, method: str = "CreatePipes", params: List[dict[str, any]] = None) -> dict:
     """
     在Revit中创建管道，支持批量创建，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -1745,7 +1917,7 @@ def create_pipes(ctx: Context, method: str = "CreatePipes", params: List[dict[st
         }
 
 
-def create_cable_trays(ctx: Context, method: str = "CreateCableTrays", params: List[dict[str, any]] = None) -> str:
+def create_cable_trays(ctx: Context, method: str = "CreateCableTrays", params: List[dict[str, any]] = None) -> dict:
     """
     在Revit中创建电缆桥架，支持批量创建，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -1861,7 +2033,7 @@ def create_cable_trays(ctx: Context, method: str = "CreateCableTrays", params: L
 
 
 def create_family_instances(ctx: Context, method: str = "CreateFamilyInstances",
-                            params: List[dict[str, any]] = None) -> str:
+                            params: List[dict[str, any]] = None) -> dict:
     """
     在Revit中创建族实例，支持多种放置方式，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
@@ -1924,7 +2096,7 @@ def create_family_instances(ctx: Context, method: str = "CreateFamilyInstances",
                 "startX": 1000,
                 "startY": 2000,
                 "startZ": 0,
-                "hostid": 225535,
+                "hostId": 225535,
                 "level": "标高 1",
             },
             # 基于视图的家具
@@ -2019,6 +2191,26 @@ def create_family_instances(ctx: Context, method: str = "CreateFamilyInstances",
         result = revit.send_command(method, validated_params)
 
         return result
+
+    except ValueError as ve:
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32602,  # Invalid params
+                "message": str(ve),
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
     except Exception as e:
-        ctx.log("error", f"创建族实例时发生错误: {str(e)}", exc_info=True)
-        return f"错误：{str(e)}"
+        ctx.log("error", f"创建族实例时发生错误: {str(e)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,  # Internal error
+                "message": f"创建族实例时发生错误: {str(e)}",
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
