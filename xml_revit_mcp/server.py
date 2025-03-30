@@ -33,8 +33,8 @@ _port: int = 8080
 
 # 工具分类
 ARCHITECTURAL_TOOLS = [
-    create_levels, create_grids, create_walls, create_floors,
-    create_door_windows, create_rooms, create_room_tags
+    create_levels, create_floor_plan_views, create_grids, create_walls, create_floors,
+    create_door_windows, create_rooms, create_room_tags, create_family_instances
 ]
 
 MEP_TOOLS = [
@@ -42,9 +42,9 @@ MEP_TOOLS = [
 ]
 
 GENERAL_TOOLS = [
-    create_family_instances, find_elements, update_elements,
-    delete_elements, parameter_elements, get_location,
-    show_elements, active_view, call_func
+    get_commands, execute_commands, call_func,
+    find_elements, update_elements, delete_elements, parameter_elements, get_location,
+    show_elements, active_view, get_selected_elements,
 ]
 
 
