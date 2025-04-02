@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from tcp import send_tcp_data
+from _tcp import send_tcp_data
 
 # 定义更新元素参数的测试数据
 data = [
-    {"elementId": 356, },  # 标高 1
+    {"elementId": 355, },  # 标高 1
+    {"elementId": 2607, },  # 标高 2
 ]
 
 # 构造 JSON-RPC 请求
 json_rpc_request = {
     "jsonrpc": "2.0",
-    "method": "CreateRoomTags",
+    "method": "CreateRooms",
     "params": data,
 }
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from tcp import send_tcp_data
+from _tcp import send_tcp_data
 
 # 定义创建楼板的测试数据
 data = [

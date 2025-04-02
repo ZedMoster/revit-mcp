@@ -43,7 +43,7 @@ MEP_TOOLS = [
 
 GENERAL_TOOLS = [
     get_commands, execute_commands, call_func,
-    find_elements, update_elements, delete_elements, parameter_elements, get_location,
+    find_elements, update_elements, delete_elements, parameter_elements, get_location, move_elements,
     show_elements, active_view, get_selected_elements,
 ]
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from tcp import send_tcp_data
+from _tcp import send_tcp_data
 
 # 定义墙数据
 data_walls = [

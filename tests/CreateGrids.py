@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from tcp import send_tcp_data
+from _tcp import send_tcp_data
 
 data = [
     # 直线轴网

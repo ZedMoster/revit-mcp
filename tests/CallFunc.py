@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from tcp import send_tcp_data
+from _tcp import send_tcp_data
 
 # 定义更新元素参数的测试数据
 data = [
-    {"elementId": 4664, },
-    {"elementId": "2307", }
+    {"func": ["ClearDuplicates", "DeleteZeroRooms", "revit-mcp"]},
 ]
 
 # 构造 JSON-RPC 请求
 json_rpc_request = {
     "jsonrpc": "2.0",
-    "method": "ActiveView",
+    "method": "CallFunc",
     "params": data,
 }
 

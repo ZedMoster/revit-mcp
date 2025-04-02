@@ -5,7 +5,7 @@ xml.Revit.MCP is a tool library for integrating with Revit through the Model Con
 
 ## Revit MCP
 
-[![Last Commit](https://img.shields.io/github/last-commit/ZedMoster/revit-mcp/dev?style=for-the-badge)](https://github.com/ZedMoster/revit-mcp/commits/main)
+[![Last Commit](https://img.shields.io/github/last-commit/ZedMoster/revit-mcp/main?style=for-the-badge)](https://github.com/ZedMoster/revit-mcp/commits/main)
 
 ### Overview
 

@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from tcp import send_tcp_data
+from _tcp import send_tcp_data
 
 # 定义更新元素参数的测试数据
 data = [
-    {"categoryName": "OST_Doors", "isInstance": False},
-    {"categoryName": "墙", "isInstance": True},
+    {"elementId": 4664, },
+    {"elementId": "2307", }
 ]
 
 # 构造 JSON-RPC 请求
 json_rpc_request = {
     "jsonrpc": "2.0",
-    "method": "FindElements",
+    "method": "ActiveView",
     "params": data,
 }
 

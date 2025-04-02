@@ -224,11 +224,14 @@ def call_func(ctx: Context, method: str = "CallFunc", params: List[str] = None) 
         dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
-                "result": {
-                    "ClearDuplicates": [被删除的重复元素ID列表],
-                    "DeleteZeroRooms": [被删除的房间ID列表],
-                    "DimensionViewPlanGrids": [创建的尺寸标注ID列表]
-                },
+                "result": [
+                        {
+                            "elementId": "创建的尺寸标注ID",
+                            "name": "尺寸标注名称",
+                            "familyName": "尺寸标注族名称"
+                        },
+                        ...
+                    ],
                 "id": request_id
             }
             失败时: {
@@ -257,10 +260,10 @@ def call_func(ctx: Context, method: str = "CallFunc", params: List[str] = None) 
         # 输出示例
         {
             "jsonrpc": "2.0",
-            "result": {
-                "ClearDuplicates": [123456, 789012],
-                "DimensionViewPlanGrids": [345678, 901234]
-            },
+            "result": [
+                    {"elementId": "123456", "name": "墙 1", "familyName": "基本墙"},
+                    {"elementId": "789012", "name": "墙 2", "familyName": "基本墙"}
+                ],
             "id": 1
         }
 
@@ -343,10 +346,9 @@ def get_selected_elements(ctx: Context, method: str = "GetSelectedElements", par
                 "jsonrpc": "2.0",
                 "result": [
                     {
-                        "id": "元素ID",
+                        "elementId": "元素ID",
                         "name": "元素名称",
-                        "categoryId": "类别ID",
-                        "categoryName": "类别名称"
+                        "familyName": "类别名称"
                     },
                     ...
                 ],
@@ -368,22 +370,14 @@ def get_selected_elements(ctx: Context, method: str = "GetSelectedElements", par
 
         # 输出示例
         {
-            "jsonrpc": "2.0",
-            "result": [
-                {
-                    "id": "123456",
-                    "name": "基本墙",
-                    "categoryId": "78901",
-                    "categoryName": "墙"
-                },
-                {
-                    "id": "234567",
-                    "name": "单扇门",
-                    "categoryId": "89012",
-                    "categoryName": "门"
-                }
+            "jsonrpc":"2.0","id":"a39934f6-0ee9-4319-b820-1eba95a82c51",
+            "result":
+            [
+                {"elementId":"355","familyName":"标高","name":"标高 1"},
+                {"elementId":"2607","familyName":"标高","name":"标高 2"},
+                {"elementId":"5855","familyName":"标高","name":"T.O. Fnd. 墙"}
             ],
-            "id": 1
+            "error":[]
         }
     """
     try:
@@ -408,7 +402,7 @@ def get_selected_elements(ctx: Context, method: str = "GetSelectedElements", par
 
 def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[str, any]] = None) -> dict:
     """
-    在Revit中按类别查找元素，返回匹配的元素ID列表，遵循JSON-RPC 2.0规范。
+    在Revit中按类别查找元素，返回匹配的元素信息列表，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
 
     特性:
@@ -429,7 +423,14 @@ def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[
         dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
-                "result": [匹配的元素ID列表],
+                "result": [
+                    {
+                        "elementId": "元素ID",
+                        "name": "元素名称",
+                        "familyName": "族名称"
+                    },
+                    ...
+                ],
                 "id": request_id
             }
             失败时: {
@@ -454,7 +455,14 @@ def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[
         ...     {"categoryName": "门", "isInstance": True}
         ... ])
         >>> print(response)
-        {"jsonrpc": "2.0", "result": [123456, 789012], "id": 1}
+        {
+            "jsonrpc": "2.0",
+            "result": [
+                {"elementId": "123456", "name": "单扇门", "familyName": "M_单扇门"},
+                {"elementId": "789012", "name": "双扇门", "familyName": "M_双扇门"}
+            ],
+            "id": 1
+        }
     """
     try:
         # 参数验证
@@ -512,18 +520,25 @@ def update_elements(ctx: Context, method: str = "UpdateElements", params: list[d
     - 严格遵循JSON-RPC 2.0规范
 
     参数:
-        ctx (Context): FastMCP上下文对象
-        method (str): JSON-RPC方法名，默认为"UpdateElements"
-        params (List[Dict[str, Union[str, int]]]): 更新参数列表，每个字典必须包含:
-            - elementId (Union[str, int]): 要更新的元素ID
-            - parameterName (str): 参数名称（区分大小写）
-            - parameterValue (str): 参数新值
+    ctx (Context): FastMCP上下文对象
+    method (str): JSON-RPC方法名，默认为"UpdateElements"
+    params (List[Dict[str, Union[str, int]]]): 更新参数列表，每个字典必须包含:
+        - elementId (Union[str, int]): 要更新的元素ID
+        - parameterName (str): 参数名称（区分大小写）
+        - parameterValue (str): 参数新值
 
     返回:
         dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
-                "result": [成功更新的元素ID列表],
+                "result": [
+                    {
+                        "elementId": "元素ID",
+                        "name": "元素名称",
+                        "familyName": "族名称"
+                    },
+                    ...
+                ],
                 "id": request_id
             }
             失败时: {
@@ -549,7 +564,14 @@ def update_elements(ctx: Context, method: str = "UpdateElements", params: list[d
         ...     {"elementId": "789012", "parameterName": "Height", "parameterValue": "3000"}
         ... ])
         >>> print(response)
-        {"jsonrpc":"2.0","result":[123456,789012],"id":1}
+        {
+            "jsonrpc": "2.0",
+            "result": [
+                {"elementId": "123456", "name": "基本墙", "familyName": "基本墙"},
+                {"elementId": "789012", "name": "单扇门", "familyName": "M_单扇门"}
+            ],
+            "id": 1
+        }
 
         >>> # 错误情况示例
         >>> response = update_elements(ctx, params=[{"elementId":999999,"parameterName":"InvalidParam","parameterValue":"X"}])
@@ -625,10 +647,26 @@ def delete_elements(ctx: Context, method: str = "DeleteElements", params: List[d
             - elementId (Union[int, str]): 要删除的元素ID
 
     返回:
-        str: JSON-RPC 2.0格式的响应字符串，结构为:
+        dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
-                "result": [成功删除的元素ID列表],
+                "result": [
+                    {
+                        "elementId": "删除的元素ID",
+                        "name": "元素名称",
+                        "familyName": "族名称"
+                    },
+                    ...
+                ],
+                "id": request_id
+            }
+            失败时: {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": int,
+                    "message": str,
+                    "data": any
+                },
                 "id": request_id
             }
 
@@ -640,10 +678,17 @@ def delete_elements(ctx: Context, method: str = "DeleteElements", params: List[d
         ...     {"elementId": 212831}
         ... ])
         >>> print(response)
-        '{"jsonrpc":"2.0","result":[5943,5913,212831],"id":1}'
+        {
+            "jsonrpc": "2.0",
+            "result": [
+                {"elementId": "5943", "name": "Wall 1", "familyName": "Basic Wall"},
+                {"elementId": "5913", "name": "Door 1", "familyName": "Single-Flush"},
+                {"elementId": "212831", "name": "Window 1", "familyName": "Fixed"}
+            ],
+            "id": 1
+        }
     """
     try:
-        # 参数验证
         if not params:
             raise ValueError("参数错误：'params'不能为空")
 
@@ -652,7 +697,6 @@ def delete_elements(ctx: Context, method: str = "DeleteElements", params: List[d
             if "elementId" not in param:
                 raise ValueError("每个参数字典必须包含'elementId'")
 
-            # 统一转为字符串以匹配服务器处理逻辑
             validated_params.append({
                 "elementId": str(param["elementId"])
             })
@@ -666,14 +710,22 @@ def delete_elements(ctx: Context, method: str = "DeleteElements", params: List[d
         ctx.log("error", f"参数验证失败: {str(ve)}")
         return {
             "jsonrpc": "2.0",
-            "error": {"code": -32602, "message": str(ve)},
+            "error": {
+                "code": -32602,  # Invalid params
+                "message": str(ve),
+                "data": params
+            },
             "id": ctx.request_id if hasattr(ctx, "request_id") else None
         }
     except Exception as e:
         ctx.log("error", f"删除元素时发生错误: {str(e)}")
         return {
             "jsonrpc": "2.0",
-            "error": {"code": -32603, "message": str(e)},
+            "error": {
+                "code": -32603,  # Internal error
+                "message": f"删除元素时发生错误: {str(e)}",
+                "data": params
+            },
             "id": ctx.request_id if hasattr(ctx, "request_id") else None
         }
 
@@ -778,6 +830,111 @@ def show_elements(ctx: Context, method: str = "ShowElements", params: List[dict[
         }
 
 
+def move_elements(ctx: Context, method: str = "MoveElements", params: List[dict[str, any]] = None) -> dict:
+    """
+    移动Revit元素，支持批量操作，遵循JSON-RPC 2.0规范。
+    mcp_tool使用时params不要有任何注释信息
+
+    特性:
+    - 支持批量移动多个Revit元素
+    - 自动处理单位转换（毫米转英尺）
+    - 返回移动后的元素详细信息（使用ElementModelRequest格式）
+    - 完善的错误处理机制
+
+    参数:
+        ctx (Context): FastMCP上下文对象
+        method (str): JSON-RPC方法名，默认为"MoveElements"
+        params (List[Dict]): 移动参数列表，每个字典包含:
+            - elementId (str): 要移动的元素ID
+            - x (float): X方向移动距离（毫米）
+            - y (float): Y方向移动距离（毫米）
+            - z (float): Z方向移动距离（毫米）
+
+    返回:
+        dict: JSON-RPC 2.0格式的响应，结构为:
+            成功时: {
+                "jsonrpc": "2.0",
+                "result": [
+                    {
+                        "elementId": "移动后的元素ID",
+                        "name": "元素名称",
+                        "familyName": "族名称"
+                    },
+                    ...
+                ],
+                "id": request_id
+            }
+            失败时: {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": int,
+                    "message": str,
+                    "data": any
+                },
+                "id": request_id
+            }
+
+    示例:
+        response = move_elements(ctx, params=[
+            {"elementId": "123456", "x": 100, "y": 200, "z": 0},
+            {"elementId": "789012", "x": -50, "y": 0, "z": 300}
+        ])
+    """
+    try:
+        if not params:
+            raise ValueError("参数错误：'params'不能为空")
+
+        validated_params = []
+        for param in params:
+            required_params = ["elementId", "x", "y", "z"]
+            for p in required_params:
+                if p not in param:
+                    raise ValueError(f"缺少必需参数: '{p}'")
+
+            if not isinstance(param["elementId"], str):
+                raise ValueError("'elementId'必须是字符串")
+
+            for coord in ["x", "y", "z"]:
+                if not isinstance(param[coord], (int, float)):
+                    raise ValueError(f"'{coord}'必须是数字")
+
+            validated_param = {
+                "elementId": param["elementId"],
+                "x": float(param["x"]),
+                "y": float(param["y"]),
+                "z": float(param["z"])
+            }
+            validated_params.append(validated_param)
+
+        from .server import get_Revit_connection
+        revit = get_Revit_connection()
+        result = revit.send_command(method, validated_params)
+        return result
+
+    except ValueError as ve:
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32602,  # Invalid params
+                "message": str(ve),
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
+    except Exception as e:
+        ctx.log("error", f"移动元素时发生错误: {str(e)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,  # Internal error
+                "message": f"移动元素时发生错误: {str(e)}",
+                "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
+
+
 def active_view(ctx: Context, method: str = "ActiveView", params: List[dict[str, any]] = None) -> dict:
     """
     激活并打开Revit中的视图，遵循JSON-RPC 2.0规范。
@@ -799,7 +956,14 @@ def active_view(ctx: Context, method: str = "ActiveView", params: List[dict[str,
         dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
-                "result": [成功激活的视图ID列表],
+                "result": [
+                    {
+                        "elementId": "视图元素ID",
+                        "name": "视图名称",
+                        "familyName": "视图族名称"
+                    },
+                    ...
+                ],
                 "id": request_id
             }
             失败时: {
@@ -1179,7 +1343,14 @@ def create_levels(ctx: Context, method: str = "CreateLevels", params: List[dict[
         dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
-                "result": [elementId1, elementId2, ...],
+                "result": [
+                    {
+                        "elementId": "创建的标高元素ID",
+                        "name": "标高名称",
+                        "familyName": "标高族名称"
+                    },
+                    ...
+                ],
                 "id": request_id
             }
             失败时: {
@@ -1198,13 +1369,6 @@ def create_levels(ctx: Context, method: str = "CreateLevels", params: List[dict[
             {"elevation": 8000, "name": "Level_3"},
             {"elevation": 12000}  # 自动生成名称"Level_12000"
         ])
-
-        # 输出示例
-        {
-            "jsonrpc": "2.0",
-            "result": [212792, 212793],
-            "id": 1
-        }
     """
     try:
         # 参数验证
@@ -1273,17 +1437,24 @@ def create_floor_plan_views(ctx: Context, method: str = "CreateFloorPlanViews",
     - 完善的错误处理机制
 
     参数:
-        ctx (Context): FastMCP上下文对象
-        method (str): JSON-RPC方法名，默认为"CreateFloorPlanViews"
-        params (List[Dict]): 视图参数列表，每个字典包含:
-            - levelId (str): 标高的ElementId
-            - viewName (str): 要创建的视图名称
+    ctx (Context): FastMCP上下文对象
+    method (str): JSON-RPC方法名，默认为"CreateFloorPlanViews"
+    params (List[Dict]): 视图参数列表，每个字典包含:
+        - levelId (str): 标高的ElementId
+        - viewName (str): 要创建的视图名称
 
     返回:
         dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
-                "result": [创建的视图ElementId列表],
+                "result": [
+                    {
+                        "elementId": "视图元素ID",
+                        "name": "视图名称",
+                        "familyName": "视图族名称"
+                    },
+                    ...
+                ],
                 "id": request_id
             }
             失败时: {
@@ -1301,6 +1472,24 @@ def create_floor_plan_views(ctx: Context, method: str = "CreateFloorPlanViews",
             {"levelId": "123456", "viewName": "Level 1 - Floor Plan"},
             {"levelId": "789012", "viewName": "Level 2 - Floor Plan"}
         ])
+
+        # 返回示例
+        {
+            "jsonrpc": "2.0",
+            "result": [
+                {
+                    "elementId": "123789",
+                    "name": "Level 1 - Floor Plan",
+                    "familyName": "Floor Plan"
+                },
+                {
+                    "elementId": "123790",
+                    "name": "Level 2 - Floor Plan",
+                    "familyName": "Floor Plan"
+                }
+            ],
+            "id": 1
+        }
     """
     try:
         if not params:
@@ -1374,7 +1563,14 @@ def create_grids(ctx: Context, method: str = "CreateGrids", params: List[dict[st
         dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
-                "result": [elementId1, elementId2, ...],
+                "result": [
+                    {
+                        "elementId": "轴网元素ID",
+                        "name": "轴网名称",
+                        "familyName": "轴网族名称"
+                    },
+                    ...
+                ],
                 "id": request_id
             }
             失败时: {
@@ -1411,7 +1607,18 @@ def create_grids(ctx: Context, method: str = "CreateGrids", params: List[dict[st
         # 输出示例
         {
             "jsonrpc": "2.0",
-            "result": [212801, 212802],
+            "result": [
+                {
+                    "elementId": "212801",
+                    "name": "Grid_A",
+                    "familyName": "轴网"
+                },
+                {
+                    "elementId": "212802",
+                    "name": "Grid_B",
+                    "familyName": "轴网"
+                }
+            ],
             "id": 1
         }
     """
@@ -1512,13 +1719,52 @@ def create_walls(ctx: Context, method: str = "CreateWalls", params: List[dict[st
             - elevation (float, optional): 墙体底部标高（毫米，默认为0）
 
     返回:
-        dict: JSON-RPC 2.0格式的响应
+        dict: JSON-RPC 2.0格式的响应，结构为:
+            成功时: {
+                "jsonrpc": "2.0",
+                "result": [
+                    {
+                        "elementId": "墙体元素ID",
+                        "name": "墙体名称",
+                        "familyName": "墙体族名称"
+                    },
+                    ...
+                ],
+                "id": request_id
+            }
+            失败时: {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": int,
+                    "message": str,
+                    "data": any
+                },
+                "id": request_id
+            }
 
     示例:
         response = create_walls(ctx, params=[
             {"startX": 0, "startY": 0, "endX": 5000, "endY": 0, "height": 3000, "width": 200},
             {"startX": 5000, "startY": 0, "endX": 5000, "endY": 5000, "height": 3000, "width": 200, "elevation": 1000}
         ])
+
+        # 返回示例
+        {
+            "jsonrpc": "2.0",
+            "result": [
+                {
+                    "elementId": "123456",
+                    "name": "基本墙",
+                    "familyName": "基本墙"
+                },
+                {
+                    "elementId": "123457",
+                    "name": "基本墙",
+                    "familyName": "基本墙"
+                }
+            ],
+            "id": 1
+        }
     """
     try:
         if not params:
@@ -1590,7 +1836,14 @@ def create_rooms(ctx: Context, method: str = "CreateRooms", params: List[dict[st
         dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
-                "result": [创建的房间元素ID列表],
+                "result": [
+                    {
+                        "elementId": "房间元素ID",
+                        "name": "房间名称",
+                        "familyName": "房间族名称"
+                    },
+                    ...
+                ],
                 "id": request_id
             }
             失败时: {
@@ -1619,13 +1872,24 @@ def create_rooms(ctx: Context, method: str = "CreateRooms", params: List[dict[st
         # 输出示例
         {
             "jsonrpc": "2.0",
-            "result": [212801, 212802, 212803],
+            "result": [
+                {
+                    "elementId": "212801",
+                    "name": "房间 1",
+                    "familyName": "房间"
+                },
+                {
+                    "elementId": "212802",
+                    "name": "房间 2",
+                    "familyName": "房间"
+                }
+            ],
             "id": 1
         }
 
     注意:
         1. 会在指定标高的所有封闭区域创建房间
-        2. 返回的房间ID列表顺序与创建顺序一致
+        2. 返回的房间信息列表顺序与创建顺序一致
         3. 如果标高没有封闭区域，则不会创建房间但也不会报错
     """
     try:
@@ -1651,41 +1915,38 @@ def create_rooms(ctx: Context, method: str = "CreateRooms", params: List[dict[st
         return response
 
     except ValueError as ve:
-        error_response = {
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
             "jsonrpc": "2.0",
             "error": {
                 "code": -32602,  # Invalid params
-                "message": f"无效参数: {str(ve)}",
+                "message": str(ve),
                 "data": params
             },
-            "id": ctx.request_id if hasattr(ctx, "request_id") else 1
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
         }
-        ctx.log("error", f"参数验证失败: {str(ve)}")
-        return error_response
-
     except Exception as e:
-        error_response = {
+        ctx.log("error", f"创建房间时发生错误: {str(e)}")
+        return {
             "jsonrpc": "2.0",
             "error": {
                 "code": -32603,  # Internal error
-                "message": f"内部错误: {str(e)}",
+                "message": f"创建房间时发生错误: {str(e)}",
                 "data": params
             },
-            "id": ctx.request_id if hasattr(ctx, "request_id") else 1
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
         }
-        ctx.log("error", f"创建房间时发生错误: {str(e)}")
-        return error_response
 
 
 def create_room_tags(ctx: Context, method: str = "CreateRoomTags", params: List[dict[str, any]] = None) -> dict:
     """
-    在指定平面视图中为所有房间创建标签，遵循JSON-RPC 2.0规范。
+    给定平面视图ID，获取当前视图中所有房间，并为其创建房间标签，遵循JSON-RPC 2.0规范。
     mcp_tool使用时params不要有任何注释信息
 
     特性:
-    - 支持批量处理多个视图
+    - 支持在指定平面视图中为所有房间创建标签
     - 自动跳过已有标签的房间
-    - 事务化操作确保数据一致性
+    - 返回已创建的房间标签信息
     - 完善的错误处理机制
 
     参数:
@@ -1698,7 +1959,14 @@ def create_room_tags(ctx: Context, method: str = "CreateRoomTags", params: List[
         dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
-                "result": [创建的房间标签元素ID列表],
+                "result": [
+                    {
+                        "elementId": "房间标签元素ID",
+                        "name": "房间标签名称",
+                        "familyName": "房间标签族名称"
+                    },
+                    ...
+                ],
                 "id": request_id
             }
             失败时: {
@@ -1711,17 +1979,11 @@ def create_room_tags(ctx: Context, method: str = "CreateRoomTags", params: List[
                 "id": request_id
             }
 
-    错误代码:
-        -32600: 无效请求
-        -32602: 无效参数（元素不是视图/无效元素）
-        -32603: 内部错误
-        -32700: 解析错误
-
     示例:
-        # 在单个视图中创建房间标签
+        # 为单个视图中的所有房间创建标签
         response = create_room_tags(ctx, params=[{"elementId": 123456}])
 
-        # 在多个视图中创建房间标签
+        # 为多个视图中的所有房间创建标签
         response = create_room_tags(ctx, params=[
             {"elementId": 123456},
             {"elementId": "789012"}
@@ -1730,14 +1992,25 @@ def create_room_tags(ctx: Context, method: str = "CreateRoomTags", params: List[
         # 输出示例
         {
             "jsonrpc": "2.0",
-            "result": [212801, 212802, 212803],
+            "result": [
+                {
+                    "elementId": "212801",
+                    "name": "房间标签 1",
+                    "familyName": "房间标签"
+                },
+                {
+                    "elementId": "212802",
+                    "name": "房间标签 2",
+                    "familyName": "房间标签"
+                }
+            ],
             "id": 1
         }
 
     注意:
-        1. 只会为没有标签的房间创建新标签
-        2. 标签位置基于房间的中心点
-        3. 如果视图不是平面视图可能无法创建标签
+        1. 如果视图不是平面视图，则会返回错误。
+        2. 如果一个房间已经有标签，则不会重复创建。
+        3. 返回的结果包含所有成功创建的房间标签信息。
     """
     try:
         # 参数验证
@@ -1749,40 +2022,38 @@ def create_room_tags(ctx: Context, method: str = "CreateRoomTags", params: List[
             if "elementId" not in param:
                 raise ValueError("每个参数字典必须包含'elementId'")
             validated_params.append({
-                "elementId": str(param["elementId"])  # 统一转为字符串以匹配服务器处理
+                "elementId": str(param["elementId"])  # 转为字符串以匹配服务器处理逻辑
             })
 
         from .server import get_Revit_connection
         revit = get_Revit_connection()
+
         # 发送请求并获取响应
         response = revit.send_command(method, validated_params)
         return response
 
     except ValueError as ve:
-        error_response = {
+        ctx.log("error", f"参数验证失败: {str(ve)}")
+        return {
             "jsonrpc": "2.0",
             "error": {
                 "code": -32602,  # Invalid params
-                "message": f"无效参数: {str(ve)}",
+                "message": str(ve),
                 "data": params
             },
-            "id": ctx.request_id if hasattr(ctx, "request_id") else 1
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
         }
-        ctx.log("error", f"参数验证失败: {str(ve)}")
-        return error_response
-
     except Exception as e:
-        error_response = {
+        ctx.log("error", f"创建房间标签时发生错误: {str(e)}")
+        return {
             "jsonrpc": "2.0",
             "error": {
                 "code": -32603,  # Internal error
-                "message": f"内部错误: {str(e)}",
+                "message": f"创建房间标签时发生错误: {str(e)}",
                 "data": params
             },
-            "id": ctx.request_id if hasattr(ctx, "request_id") else 1
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
         }
-        ctx.log("error", f"创建房间标签时发生错误: {str(e)}")
-        return error_response
 
 
 def create_floors(ctx: Context, method: str = "CreateFloors", params: List[dict[str, any]] = None) -> dict:
@@ -1811,20 +2082,27 @@ def create_floors(ctx: Context, method: str = "CreateFloors", params: List[dict[
 
     返回:
         dict: JSON-RPC 2.0格式的响应，结构为:
-            成功时: {
-                "jsonrpc": "2.0",
-                "result": [elementId1, elementId2, ...],
-                "id": request_id
-            }
-            失败时: {
-                "jsonrpc": "2.0",
-                "error": {
-                    "code": int,
-                    "message": str,
-                    "data": any
+        成功时: {
+            "jsonrpc": "2.0",
+            "result": [
+                {
+                    "elementId": "楼板元素ID",
+                    "name": "楼板名称",
+                    "familyName": "楼板族名称"
                 },
-                "id": request_id
-            }
+                ...
+            ],
+            "id": request_id
+        }
+        失败时: {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": int,
+                "message": str,
+                "data": any
+            },
+            "id": request_id
+        }
 
     示例:
         # 创建多个楼板
@@ -1964,7 +2242,28 @@ def create_door_windows(ctx: Context, method: str = "CreateDoorWindows", params:
             - offset (str, optional): 底高度偏移值
 
     返回:
-        dict: JSON-RPC 2.0格式的响应
+        dict: JSON-RPC 2.0格式的响应，结构为:
+            成功时: {
+                "jsonrpc": "2.0",
+                "result": [
+                    {
+                        "elementId": "门窗元素ID",
+                        "name": "门窗名称",
+                        "familyName": "门窗族名称"
+                    },
+                    ...
+                ],
+                "id": request_id
+            }
+            失败时: {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": int,
+                    "message": str,
+                    "data": any
+                },
+                "id": request_id
+            }
 
     示例:
         response = create_door_windows(ctx, params=[
@@ -2075,7 +2374,28 @@ def create_ducts(ctx: Context, method: str = "CreateDucts", params: List[dict[st
             - height (float): 风管高度（毫米）
 
     返回:
-        dict: JSON-RPC 2.0格式的响应
+        dict: JSON-RPC 2.0格式的响应，结构为:
+            成功时: {
+                "jsonrpc": "2.0",
+                "result": [
+                    {
+                        "elementId": "元素ID",
+                        "name": "名称",
+                        "familyName": "族名称"
+                    },
+                    ...
+                ],
+                "id": request_id
+            }
+            失败时: {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": int,
+                    "message": str,
+                    "data": any
+                },
+                "id": request_id
+            }
 
     示例:
         response = create_ducts(ctx, params=[
@@ -2193,7 +2513,28 @@ def create_pipes(ctx: Context, method: str = "CreatePipes", params: List[dict[st
             - diameter (float): 管道直径（毫米）
 
     返回:
-        dict: JSON-RPC 2.0格式的响应
+        dict: JSON-RPC 2.0格式的响应，结构为:
+            成功时: {
+                "jsonrpc": "2.0",
+                "result": [
+                    {
+                        "elementId": "元素ID",
+                        "name": "名称",
+                        "familyName": "族名称"
+                    },
+                    ...
+                ],
+                "id": request_id
+            }
+            失败时: {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": int,
+                    "message": str,
+                    "data": any
+                },
+                "id": request_id
+            }
 
     示例:
         response = create_pipes(ctx, params=[
@@ -2308,7 +2649,28 @@ def create_cable_trays(ctx: Context, method: str = "CreateCableTrays", params: L
             - height (float): 桥架高度（毫米）
 
     返回:
-        dict: JSON-RPC 2.0格式的响应
+        dict: JSON-RPC 2.0格式的响应，结构为:
+            成功时: {
+                "jsonrpc": "2.0",
+                "result": [
+                    {
+                        "elementId": "元素ID",
+                        "name": "名称",
+                        "familyName": "族名称"
+                    },
+                    ...
+                ],
+                "id": request_id
+            }
+            失败时: {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": int,
+                    "message": str,
+                    "data": any
+                },
+                "id": request_id
+            }
 
     示例:
         response = create_cable_trays(ctx, params=[
@@ -2437,7 +2799,14 @@ def create_family_instances(ctx: Context, method: str = "CreateFamilyInstances",
         dict: JSON-RPC 2.0格式的响应，结构为:
             成功时: {
                 "jsonrpc": "2.0",
-                "result": [elementId1, elementId2, ...],
+                "result": [
+                    {
+                        "elementId": "元素ID",
+                        "name": "名称",
+                        "familyName": "族名称"
+                    },
+                    ...
+                ],
                 "id": request_id
             }
             失败时: {
