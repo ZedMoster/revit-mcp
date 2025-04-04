@@ -1,6 +1,6 @@
 [project]
 name = "revit-mcp"
-version = "0.4.3"
+version = "0.5.1"
 description = "revit integration through the Model Context Protocol"
 readme = "README.md"
 requires-python = ">=3.10"

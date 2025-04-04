@@ -4,16 +4,15 @@ from _tcp import send_tcp_data
 
 # 定义更新元素参数的测试数据
 data = [
-    # {"name": "ClearDuplicates"},
-    # {"name": "DeleteZeroRooms"},
-    # {"name": "DimensionViewPlanGrids"},
-    {"name": "新增标高", "params": {"offset": 3000}}
+    {
+        "filePath": r"C:\Users\zed\AppData\Local\Autodesk\zedmoster\xmlRevitCopy\db991824-5d43-4a9a-9f2e-824e37abb87f.dwg",
+    },
 ]
 
 # 构造 JSON-RPC 请求
 json_rpc_request = {
     "jsonrpc": "2.0",
-    "method": "CallFunc",
+    "method": "LinkDWGAndActivateView",
     "params": data,
 }
 

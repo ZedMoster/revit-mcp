@@ -4,8 +4,7 @@ from _tcp import send_tcp_data
 
 # 定义更新元素参数的测试数据
 data = [
-    {"elementId": 212808, },
-    {"elementId": "212899", }
+    {"elementId": "212769"}
 ]
 
 # 构造 JSON-RPC 请求

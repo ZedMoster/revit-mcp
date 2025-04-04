@@ -138,7 +138,7 @@ class RevitConnection:
 
                 except socket.timeout:
                     if chunks:
-                        # 如果已经接收了一些数据，尝试解析
+                        # 如果已经接收到部分数据，尝试解析
                         try:
                             data = b''.join(chunks)
                             json.loads(data.decode('utf-8'))
@@ -206,7 +206,7 @@ class RevitConnection:
             self.sock.sendall(command_json.encode('utf-8'))
             logger.debug("命令已发送，等待响应...")
 
-            # 接收响应
+            # 使用 receive_full_response 接收完整数据流
             response_data = self.receive_full_response()
             logger.debug(f"已接收 {len(response_data)} 字节数据")
 
