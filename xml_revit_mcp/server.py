@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
 # server.py
 # Copyright (c) 2025 zedmoster
+# Revit integration through the Model Context Protocol.
 
+import logging
+import types
+import inspect
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
+from mcp.types import Tool as MCPTool
 from .revit_connection import RevitConnection
+from .resources import get_all_builtin_category, get_greeting, list_resource_templates
+from .prompts import asset_creation_strategy, list_prompts
 from .tools import *
-import logging
 
 # 创建日志格式
 log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -27,8 +33,8 @@ if not logger.handlers:
     logger.propagate = False
 
 # 全局资源连接
-_Revit_connection: Optional[RevitConnection] = None
-_polyhaven_enabled: bool = False
+_connection: Optional[RevitConnection] = None
+_enabled: bool = False
 _port: int = 8080
 
 # 工具分类
@@ -49,7 +55,7 @@ GENERAL_TOOLS = [
 ]
 
 
-def get_Revit_connection() -> RevitConnection:
+def get_revit_connection() -> RevitConnection:
     """
     获取或创建持久的Revit连接
 
@@ -59,33 +65,33 @@ def get_Revit_connection() -> RevitConnection:
     异常:
         Exception: 连接失败时抛出
     """
-    global _Revit_connection, _polyhaven_enabled
+    global _connection, _enabled
 
-    if _Revit_connection is not None:
+    if _connection is not None:
         try:
             # 测试连接是否有效
-            result = _Revit_connection.send_command("get_polyhaven_status")
-            _polyhaven_enabled = result.get("enabled", False)
-            return _Revit_connection
+            result = _connection.send_command("get_polyhaven_status")
+            _enabled = result.get("enabled", False)
+            return _connection
         except Exception as e:
             logger.warning(f"现有连接已失效: {str(e)}")
             try:
-                _Revit_connection.disconnect()
+                _connection.disconnect()
             except:
                 pass
-            _Revit_connection = None
+            _connection = None
 
     # 创建新连接
-    if _Revit_connection is None:
-        _Revit_connection = RevitConnection(host="localhost", port=_port)
-        if not _Revit_connection.connect():
+    if _connection is None:
+        _connection = RevitConnection(host="localhost", port=_port)
+        if not _connection.connect():
             logger.error("无法连接到Revit")
-            _Revit_connection = None
+            _connection = None
             raise Exception(
                 "无法连接到Revit。请确保Revit插件正在运行。")
         logger.info("已创建新的持久连接到Revit")
 
-    return _Revit_connection
+    return _connection
 
 
 @asynccontextmanager
@@ -99,7 +105,7 @@ async def server_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
     try:
         logger.info("RevitMCP服务器正在启动")
         try:
-            Revit = get_Revit_connection()
+            get_revit_connection()
             logger.info("服务器启动时成功连接到Revit")
         except Exception as e:
             logger.warning(f"服务器启动时无法连接到Revit: {str(e)}")
@@ -108,11 +114,11 @@ async def server_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
 
         yield {}
     finally:
-        global _Revit_connection
-        if _Revit_connection:
+        global _connection
+        if _connection:
             logger.info("服务器关闭时断开与Revit的连接")
-            _Revit_connection.disconnect()
-            _Revit_connection = None
+            _connection.disconnect()
+            _connection = None
         logger.info("RevitMCP服务器已关闭")
 
 
@@ -140,133 +146,113 @@ def register_tools(server: FastMCP) -> None:
         server.tool()(tool)
 
 
-# 注册所有工具
-register_tools(mcp)
-
-
-@mcp.prompt()
-def asset_creation_strategy() -> str:
+def list_tools(self: FastMCP) -> list[MCPTool]:
     """
-    基于现有工具集定义Revit资源(图元、族等)创建和管理的优化策略
+    列出所有注册到MCP服务器的工具，并按类别分组
 
     返回:
-        str: 包含以下内容的综合策略文档:
-            - 图元创建最佳实践
-            - 性能优化技术
-            - 错误处理方法
-            - 批处理建议
-            - 资源管理
-
-    策略要点:
-        1. 批处理:
-           - 利用API工具的批量创建功能
-           - 分组相似操作以减少事务
-           - 使用已验证参数模式确保一致性
-
-        2. 错误处理:
-           - 失败操作的事务回滚
-           - 使用标准JSON-RPC错误响应格式
-           - 包含详细日志记录
-
-        3. 性能优化:
-           - 通过批处理减少Revit API调用
-           - 使用字符串格式的元素ID
-           - 缓存常用元素引用
-
-        4. 创建工作流:
-           - 遵循层级创建顺序(标高→轴网→墙→楼板→门窗→族实例)
-           - 放置依赖图元前验证宿主存在
-           - 使用毫米单位确保一致性
-
-        5. 资源管理:
-           - 尽可能重用元素
-           - 批量操作使用轻量级表示
-           - 操作后清理临时元素
-
-        6. 类型选择逻辑:
-           - 在创建前检查是否提供了CategoryName和Name参数
-           - 如果未提供，使用find_elements查询对应类别下的所有类型
-           - 返回类型列表供用户选择
-           - 确认选择后再执行创建逻辑
-           - 确保创建的类型在项目中存在
+        dict: 分类的工具字典，包含名称、描述和参数信息
     """
+    tools_info = {
+        "architectural": [],
+        "mep": [],
+        "general": []
+    }
 
-    strategy = """
-    # Revit资源创建综合策略
+    # 获取建筑工具信息
+    for tool in ARCHITECTURAL_TOOLS:
+        # 获取函数签名
+        sig = inspect.signature(tool)
+        params = []
+        for param_name, param in sig.parameters.items():
+            if param_name != 'ctx':  # 排除上下文参数
+                param_info = {
+                    "name": param_name,
+                    "required": param.default == inspect.Parameter.empty,
+                    "default": None if param.default == inspect.Parameter.empty else param.default
+                }
+                params.append(param_info)
 
-    ## I. 图元创建原则
-    1. **层级优先**: 先创建宿主元素再创建依赖元素
-    2. **批处理**: 尽可能使用批量操作
-    3. **验证**: API调用前验证参数
-    4. **事务管理**: 分组相关操作
+        # 获取函数文档
+        doc = inspect.getdoc(tool)
+        description = doc.split('\n')[0] if doc else "无描述"
 
-    ## II. 性能优化
-    1. **最小化视图切换**: 使用元素ID而非激活视图
-    2. **缓存引用**: 存储常用元素集合
-    3. **延迟加载**: 仅当需要时查询元素详情
-    4. **批量处理**: 使用工具中的批量创建函数
+        tool_info = {
+            "name": tool.__name__,
+            "description": description,
+            "full_doc": doc,
+            "parameters": params
+        }
+        tools_info["architectural"].append(tool_info)
 
-    ## III. 错误处理
-    1. **标准化错误**: 使用标准JSON-RPC错误代码
-    2. **事务回滚**: 实现事务回滚点
-    3. **详细日志**: 包含元素引用的详细日志
-    4. **参数验证**: 执行前验证参数
+    # 获取MEP工具信息
+    for tool in MEP_TOOLS:
+        sig = inspect.signature(tool)
+        params = []
+        for param_name, param in sig.parameters.items():
+            if param_name != 'ctx':
+                param_info = {
+                    "name": param_name,
+                    "required": param.default == inspect.Parameter.empty,
+                    "default": None if param.default == inspect.Parameter.empty else param.default
+                }
+                params.append(param_info)
 
-    ## IV. 类型选择逻辑(必须严格执行的逻辑,不然一些Name项目中不存在一定不会运行成功)
-    1. **参数检查**: 在执行创建操作前，检查CategoryName和Name参数是否存在。
-    2. **类型查找**: 如果未提供参数，使用find_elements函数查找对应类别下的所有类型。
-    3. **用户选择**: 将查找到的类型以列表形式返回，让用户进行选择。
-    4. **确认执行**: 用户选择后，验证类型的有效性，并确保项目中存在。
-    5. **执行创建**: 使用用户确认的类型进行创建操作。
+        doc = inspect.getdoc(tool)
+        description = doc.split('\n')[0] if doc else "无描述"
 
-    ## V. 推荐工作流
+        tool_info = {
+            "name": tool.__name__,
+            "description": description,
+            "full_doc": doc,
+            "parameters": params
+        }
+        tools_info["mep"].append(tool_info)
 
-    ### 1. 建筑工作流
-    - 标高(create_levels) → 轴网(create_grids) → 墙(create_walls) → 楼板(create_floors) → 
-      门窗(create_door_windows) → 其他族实例(create_family_instances)
+    # 获取通用工具信息
+    for tool in GENERAL_TOOLS:
+        sig = inspect.signature(tool)
+        params = []
+        for param_name, param in sig.parameters.items():
+            if param_name != 'ctx':
+                param_info = {
+                    "name": param_name,
+                    "required": param.default == inspect.Parameter.empty,
+                    "default": None if param.default == inspect.Parameter.empty else param.default
+                }
+                params.append(param_info)
 
-    ### 2. 标注工作流
-    - 创建房间(create_rooms) → 添加标签(create_room_tags)
+        doc = inspect.getdoc(tool)
+        description = doc.split('\n')[0] if doc else "无描述"
 
-    ### 3. 创建族工作流
-    - 查找族类型(find_elements) → 创建族实例(create_family_instances)
+        tool_info = {
+            "name": tool.__name__,
+            "description": description,
+            "full_doc": doc,
+            "parameters": params
+        }
+        tools_info["general"].append(tool_info)
 
-    ### 4. MEP工作流
-    - 标高(create_levels) → 墙(create_walls) → 风管(create_ducts) → 管道(create_pipes) → 设备(create_family_instances)
+    # 添加所有工具的汇总列表
+    all_tools = []
+    all_tools.extend(tools_info["architectural"])
+    all_tools.extend(tools_info["mep"])
+    all_tools.extend(tools_info["general"])
+    tools_info["all"] = all_tools
 
-    ### 5. 电气工作流
-    - 标高(create_levels) → 墙(create_walls) → 电缆桥架(create_cable_trays) → 电气设备(create_family_instances)
+    logger.info(f"获取到 {len(all_tools)} 个工具函数")
+    return tools_info
 
-    ## VI. 最佳实践
 
-    ### 1. 工具使用
-    - **创建类**: create_levels/create_grids/create_walls/create_door_windows等
-    - **查询类**: find_elements/parameter_elements
-    - **修改类**: update_elements
-    - **删除类**: delete_elements
-
-    ### 2. 参数验证
-    - 使用字典列表格式参数(确保参数中不要包含注释内容)
-    - 元素ID统一转为字符串
-    - 坐标单位使用毫米
-
-    ### 3. 元素管理
-    - 创建后使用show_elements验证
-    - 使用get_location获取定位信息
-    - 批量更新使用update_elements
-
-    ## VII. 实施说明
-    - 所有坐标参数必须使用毫米单位
-    - 元素ID优先使用字符串格式
-    - 放置族实例前用find_elements验证宿主存在
-    - 相关操作使用同一事务组
-    - 使用active_view管理视图切换
-    - 门窗族实例创建使用专用create_door_windows函数
-    - MEP元素使用专用的create_ducts/create_pipes/create_cable_trays函数
-    """
-
-    return strategy
-
+# 注册所有工具
+register_tools(mcp)
+mcp.list_tools = types.MethodType(list_tools, mcp)
+mcp.prompt()(asset_creation_strategy)
+mcp.list_prompts = types.MethodType(list_prompts, mcp)
+mcp.resource("config://BuiltInCategory")(get_all_builtin_category)
+mcp.resource("greeting://{name}")(get_greeting)
+mcp.list_resource_templates = types.MethodType(list_resource_templates, mcp)
+mcp.list_resources()
 
 def main():
     """运行MCP服务器"""

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # rpc.py
 # Copyright (c) 2025 zedmoster
+# Revit integration through the Model Context Protocol.
 
 from dataclasses import dataclass
 from typing import Dict, Any, Optional

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # revit_connection.py
 # Copyright (c) 2025 zedmoster
+# Revit integration through the Model Context Protocol.
 
 import socket
 import json

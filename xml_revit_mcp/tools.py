@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # tools.py
 # Copyright (c) 2025 zedmoster
+# Revit integration through the Model Context Protocol.
 
 from typing import List
 from mcp.server.fastmcp import Context
@@ -70,8 +71,8 @@ def get_commands(ctx: Context, method: str = "GetCommands") -> dict:
     """
     try:
         # 此函数不需要参数，直接发送请求
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, {})
         return result
 
@@ -171,8 +172,8 @@ def execute_commands(ctx: Context, method: str = "ExecuteCommands", params: List
             }
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, validated_params)
         return result
 
@@ -279,8 +280,8 @@ def call_func(ctx: Context, method: str = "CallFunc", params: List[dict[str, any
                 "params": param.get("params", {})  # 如果未提供参数，则默认为空字典
             })
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
 
         # 发送请求并获取响应
         response = revit.send_command(method, validated_params)
@@ -371,8 +372,8 @@ def get_selected_elements(ctx: Context, method: str = "GetSelectedElements") -> 
     """
     try:
         # 此函数不需要参数，直接发送请求
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, {})
         return result
 
@@ -476,8 +477,8 @@ def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[
                 "isInstance": param["isInstance"]
             })
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, validated_params)
         return result
 
@@ -589,8 +590,8 @@ def update_elements(ctx: Context, method: str = "UpdateElements", params: list[d
             }
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, validated_params)
         return result
 
@@ -691,8 +692,8 @@ def delete_elements(ctx: Context, method: str = "DeleteElements", params: List[d
                 "elementId": str(param["elementId"])
             })
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, validated_params)
         return result
 
@@ -791,8 +792,8 @@ def show_elements(ctx: Context, method: str = "ShowElements", params: List[dict[
             validated_params.append({"elementId": element_id})
 
         # 执行显示操作
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result_data = revit.send_command(method, validated_params)
         return result_data
 
@@ -896,8 +897,8 @@ def move_elements(ctx: Context, method: str = "MoveElements", params: List[dict[
             }
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, validated_params)
         return result
 
@@ -1009,8 +1010,8 @@ def active_view(ctx: Context, method: str = "ActiveView", params: List[dict[str,
             validated_params.append({
                 "elementId": str(param["elementId"])  # 统一转为字符串以匹配服务器处理
             })
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
 
         # 发送请求并获取响应
         response = revit.send_command(method, validated_params)
@@ -1139,8 +1140,8 @@ def parameter_elements(ctx: Context, method: str = "ParameterElements", params: 
 
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, validated_params)
         return result
 
@@ -1281,8 +1282,8 @@ def get_locations(ctx: Context, method: str = "GetLocations", params: List[dict[
                 element_id = str(param.get("elementId"))
                 validated_params.append({"elementId": element_id})
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
 
         # 发送请求并获取响应
         response = revit.send_command(method, validated_params)
@@ -1390,8 +1391,8 @@ def create_levels(ctx: Context, method: str = "CreateLevels", params: List[dict[
 
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, validated_params)
         return result
 
@@ -1500,8 +1501,8 @@ def create_floor_plan_views(ctx: Context, method: str = "CreateFloorPlanViews",
             }
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, validated_params)
         return result
 
@@ -1659,8 +1660,8 @@ def create_grids(ctx: Context, method: str = "CreateGrids", params: List[dict[st
 
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, validated_params)
         return result
 
@@ -1789,8 +1790,8 @@ def create_walls(ctx: Context, method: str = "CreateWalls", params: List[dict[st
 
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         return revit.send_command(method, validated_params)
 
     except ValueError as ve:
@@ -1901,8 +1902,8 @@ def create_rooms(ctx: Context, method: str = "CreateRooms", params: List[dict[st
                 "elementId": str(param["elementId"])
             })
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
 
         # 发送请求并获取响应
         response = revit.send_command(method, validated_params)
@@ -2019,8 +2020,8 @@ def create_room_tags(ctx: Context, method: str = "CreateRoomTags", params: List[
                 "elementId": str(param["elementId"])  # 转为字符串以匹配服务器处理逻辑
             })
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
 
         # 发送请求并获取响应
         response = revit.send_command(method, validated_params)
@@ -2181,8 +2182,8 @@ def create_floors(ctx: Context, method: str = "CreateFloors", params: List[dict[
 
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         result = revit.send_command(method, validated_params)
         return result
 
@@ -2320,8 +2321,8 @@ def create_door_windows(ctx: Context, method: str = "CreateDoorWindows", params:
 
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         return revit.send_command(method, validated_params)
 
     except ValueError as ve:
@@ -2460,8 +2461,8 @@ def create_ducts(ctx: Context, method: str = "CreateDucts", params: List[dict[st
 
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         return revit.send_command(method, validated_params)
 
     except ValueError as ve:
@@ -2596,8 +2597,8 @@ def create_pipes(ctx: Context, method: str = "CreatePipes", params: List[dict[st
 
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         return revit.send_command(method, validated_params)
 
     except ValueError as ve:
@@ -2732,8 +2733,8 @@ def create_cable_trays(ctx: Context, method: str = "CreateCableTrays", params: L
 
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
         return revit.send_command(method, validated_params)
 
     except ValueError as ve:
@@ -2911,8 +2912,8 @@ def create_family_instances(ctx: Context, method: str = "CreateFamilyInstances",
                 validated_param["rotationAngle"] = 0
 
             validated_params.append(validated_param)
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
 
         # 构建调用方法的参数
         result = revit.send_command(method, validated_params)
@@ -3021,8 +3022,8 @@ def link_dwg_and_activate_view(ctx: Context, method: str = "LinkDWGAndActivateVi
                 "viewName": param["viewName"]
             })
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
 
         # 发送请求并获取响应
         response = revit.send_command(method, validated_params)
@@ -3162,8 +3163,8 @@ def create_sheets(ctx: Context, method: str = "CreateSheets", params: List[dict[
 
             validated_params.append(validated_param)
 
-        from .server import get_Revit_connection
-        revit = get_Revit_connection()
+        from .server import get_revit_connection
+        revit = get_revit_connection()
 
         # 发送请求并获取响应
         response = revit.send_command(method, validated_params)
