@@ -201,7 +201,7 @@ def execute_commands(ctx: Context, method: str = "ExecuteCommands", params: List
         }
 
 
-def call_func(ctx: Context, method: str = "CallFunc", params: List[dict[str, any]] = None) -> dict:
+def call_func(ctx: Context, method: str = "CallFunc", params: List[dict[str, any]] = []) -> dict:
     """
     调用 Revit 函数服务，支持直接传递功能名称及其参数，遵循 JSON-RPC 2.0 规范。
 
@@ -214,58 +214,36 @@ def call_func(ctx: Context, method: str = "CallFunc", params: List[dict[str, any
     参数:
         ctx (Context): FastMCP上下文对象
         method (str): JSON-RPC方法名，默认为"CallFunc"
-        params (List[Dict]): 功能参数列表，每个字典包含:
+        params (List[Dict]): 功能参数列表，必须提供至少一个函数名，每个字典包含:
             - name (str): 要调用的功能名称
             - params (dict, optional): 功能对应的参数,可为空
 
     返回:
-        dict: JSON-RPC 2.0格式的响应，结构为:
-            成功时: {
-                "jsonrpc": "2.0",
-                "result": [
-                    {
-                        "elementId": "元素ID",
-                        "name": "元素名称",
-                        "familyName": "族名称"
-                    },
-                    ...
-                ],
-                "id": request_id
-            }
-            失败时: {
-                "jsonrpc": "2.0",
-                "error": {
-                    "code": int,
-                    "message": str,
-                    "data": any
-                },
-                "id": request_id
-            }
+        dict: JSON-RPC 2.0格式的响应
 
     示例:
+        # 调用不需要参数的函数
         response = call_func(ctx, params=[
             {"name": "ClearDuplicates"},
-            {"name": "DeleteZeroRooms"},
             {"name": "DimensionViewPlanGrids"},
+            {"name": "DeleteZeroRooms"}
+        ])
+
+        # 调用带参数的函数
+        response = call_func(ctx, params=[
             {"name": "新增标高", "params": {"offset": 3000}}
         ])
 
-        # 输出示例
-        {
-            "jsonrpc": "2.0",
-            "result": [
-                {"elementId": "123456", "name": "墙体", "familyName": "基本墙"},
-                {"elementId": "789012", "name": "房间", "familyName": "房间"},
-                {"elementId": "345678", "name": "尺寸标注", "familyName": "线性标注"},
-                {"elementId": "345672", "name": "标高 3", "familyName": "标高"},
-            ],
-            "id": 1
-        }
+        # 混合调用
+        response = call_func(ctx, params=[
+            {"name": "ClearDuplicates"},
+            {"name": "新增标高", "params": {"offset": 3000}}
+        ])
     """
     try:
-        # 参数验证
-        if not params:
-            raise ValueError("参数错误：'params'不能为空")
+        # 参数验证 - 确保提供了至少一个函数调用
+        if not params or len(params) == 0:
+            raise ValueError("必须提供至少一个函数调用，params不能为空列表")
 
         validated_params = []
         for param in params:
@@ -283,13 +261,7 @@ def call_func(ctx: Context, method: str = "CallFunc", params: List[dict[str, any
         from .server import get_revit_connection
         revit = get_revit_connection()
 
-        # 发送请求并获取响应
         response = revit.send_command(method, validated_params)
-
-        # 检查响应并返回结果
-        if response.get("error"):
-            ctx.log("error", f"服务器返回错误: {response['error']}")
-
         return response
 
     except ValueError as ve:
@@ -311,6 +283,108 @@ def call_func(ctx: Context, method: str = "CallFunc", params: List[dict[str, any
                 "code": -32603,  # Internal error
                 "message": f"执行函数时发生错误: {str(e)}",
                 "data": params
+            },
+            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+        }
+
+
+def get_view_data(ctx: Context, method: str = "GetViewData", params: List[dict[str, any]] = None) -> dict:
+    """
+    读取当前视图中所有信息，包括文本和图形实体数据，遵循JSON-RPC 2.0规范。
+
+    特性:
+    - 提取所有文本内容及其位置信息
+    - 提取所有图形对象（线、弧、圆等）的几何信息
+    - 按图层组织返回的数据
+    - 完善的错误处理机制
+
+    参数:
+        ctx (Context): FastMCP上下文对象
+        method (str): JSON-RPC方法名，默认为"GetViewData"
+        params (List[dict], optional): 可选参数，默认为None
+
+    返回:
+        dict: JSON-RPC 2.0格式的响应，结构为:
+            成功时: {
+                "jsonrpc": "2.0",
+                "result": [
+                    {
+                        "name": "图层名称",
+                        "type": "Text",
+                        "text": "文本内容",
+                        "point": {"X": x值, "Y": y值, "Z": z值}
+                    },
+                    {
+                        "name": "图层名称",
+                        "type": "Line",
+                        "startPoint": {"X": x1, "Y": y1, "Z": z1},
+                        "endPoint": {"X": x2, "Y": y2, "Z": z2}
+                    },
+                    {
+                        "name": "图层名称",
+                        "type": "Arc",
+                        "startAngle": 起始角度,
+                        "endAngle": 结束角度,
+                        "centerPoint": {"X": x, "Y": y, "Z": z},
+                        "radius": 半径值
+                    },
+                    {
+                        "name": "图层名称",
+                        "type": "Circle",
+                        "centerPoint": {"X": x, "Y": y, "Z": z},
+                        "radius": 半径值
+                    },
+                    ...
+                ],
+                "id": request_id
+            }
+            失败时: {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": int,
+                    "message": str,
+                    "data": any
+                },
+                "id": request_id
+            }
+
+    错误代码:
+        -32600: 无效请求
+        -32603: 内部错误（导出或解析时）
+        -32700: 解析错误
+
+    示例:
+        # 获取当前视图所有图形数据
+        response = get_view_data(ctx)
+
+        # 处理文本数据
+        texts = [item for item in response.get("result", []) if item.get("type") == "Text"]
+
+        # 处理线段数据
+        lines = [item for item in response.get("result", []) if item.get("type") == "Line"]
+
+        # 处理圆弧数据
+        arcs = [item for item in response.get("result", []) if item.get("type") == "Arc"]
+    """
+    try:
+        # 构造请求参数，本方法不需要特定参数
+        request_params = params or []
+
+        from .server import get_revit_connection
+        revit = get_revit_connection()
+
+        # 发送请求并获取响应
+        response = revit.send_command(method, request_params)
+        return response
+
+    except Exception as e:
+        ctx.log("error", f"获取视图数据时发生错误: {str(e)}")
+        return {
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,  # Internal error
+                "message": f"获取视图数据时发生错误: {str(e)}",
+                "data": None
             },
             "id": ctx.request_id if hasattr(ctx, "request_id") else None
         }
@@ -397,6 +471,7 @@ def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[
 
     特性:
     - 支持按类别BuiltInCategory或者Category.Name查找
+    - 和视图相关的请使用OST_Views类别作为categoryName参数,获取然后通过参数来过滤出如楼层平面,三维视图,剖面,图纸等
     - 可指定查找实例或类型元素
     - 支持批量多个查询条件
     - 严格遵循JSON-RPC 2.0规范
@@ -406,7 +481,8 @@ def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[
         ctx (Context): FastMCP上下文对象
         method (str): JSON-RPC方法名，默认为"FindElements"
         params (List[Dict[str, Union[str, bool]]]): 查询条件列表，每个字典包含:
-            - categoryName (str): BuiltInCategory或者Category.Name （如"OST_Walls","OST_Doors", "墙", "门", "结构框架"等）
+            - categoryName (str): BuiltInCategory或者Category.Name
+                （如"OST_Views","OST_Walls","OST_Doors", "视图", "墙", "门"等）
             - isInstance (bool): True查找实例,False查找类型
 
     返回:
@@ -440,11 +516,12 @@ def find_elements(ctx: Context, method: str = "FindElements", params: List[dict[
         -32700: 解析错误（参数格式错误）
 
     示例:
-        >>> response = find_elements(ctx, params=[
-        ...     {"categoryName": "OST_Doors", "isInstance": False},
-        ...     {"categoryName": "门", "isInstance": True}
-        ... ])
-        >>> print(response)
+        > response = find_elements(ctx, params=[
+            {"categoryName": "OST_Views", "isInstance": True},
+            {"categoryName": "OST_Doors", "isInstance": False},
+            {"categoryName": "门", "isInstance": True}
+        ])
+        > print(response)
         {
             "jsonrpc": "2.0",
             "result": [
@@ -3027,11 +3104,6 @@ def link_dwg_and_activate_view(ctx: Context, method: str = "LinkDWGAndActivateVi
 
         # 发送请求并获取响应
         response = revit.send_command(method, validated_params)
-
-        # 检查响应并返回结果
-        if response.get("error"):
-            ctx.log("error", f"服务器返回错误: {response['error']}")
-
         return response
 
     except ValueError as ve:
@@ -3058,9 +3130,10 @@ def link_dwg_and_activate_view(ctx: Context, method: str = "LinkDWGAndActivateVi
         }
 
 
-def create_sheets(ctx: Context, method: str = "CreateSheets", params: List[dict[str, str]] = None) -> dict:
+def create_sheets(ctx: Context, method: str = "CreateSheets", params: List[dict] = None,
+                  request_id: int = None) -> dict:
     """
-    批量创建图纸并添加指定视图，遵循JSON-RPC 2.0规范。
+    批量创建Revit图纸并添加指定视图，遵循JSON-RPC 2.0规范。
 
     特性:
     - 支持批量创建带编号和名称的图纸
@@ -3076,80 +3149,40 @@ def create_sheets(ctx: Context, method: str = "CreateSheets", params: List[dict[
             - name (str): 图纸名称（必填）
             - titleBlockType (str): 标题块类型名称（必填）
             - viewName (str, optional): 要添加到图纸的视图名称（可选）
+        request_id (int, optional): 请求ID，默认自动生成
 
     返回:
-        dict: JSON-RPC 2.0格式的响应，结构为:
-            成功时: {
-                "jsonrpc": "2.0",
-                "result": [
-                    {
-                        "elementId": "图纸/视口元素ID",
-                        "name": "元素名称",
-                        "familyName": "族名称"
-                    },
-                    ...
-                ],
-                "id": request_id
-            }
-            失败时: {
-                "jsonrpc": "2.0",
-                "error": {
-                    "code": int,
-                    "message": str,
-                    "data": any
-                },
-                "id": request_id
-            }
+        dict: JSON-RPC 2.0格式的响应
 
     示例:
         response = create_sheets(ctx, params=[
             {
-                "number": "101",
+                "number": "A101",
                 "name": "首层平面图",
                 "titleBlockType": "A0 公制",
                 "viewName": "标高 1"
             },
             {
-                "number": "102",
+                "number": "A102",
                 "name": "二层平面图",
                 "titleBlockType": "A0 公制"
             }
         ])
-
-        # 输出示例
-        {
-            "jsonrpc": "2.0",
-            "result": [
-                {
-                    "elementId": "654321",
-                    "name": "A101 首层平面图",
-                    "familyName": "图纸"
-                },
-                {
-                    "elementId": "654322",
-                    "name": "视口-123456",
-                    "familyName": "视口"
-                },
-                {
-                    "elementId": "654323",
-                    "name": "A102 二层平面图",
-                    "familyName": "图纸"
-                }
-            ],
-            "id": 1
-        }
     """
     try:
         # 参数验证
-        if not params:
-            raise ValueError("参数错误：'params'不能为空")
+        if not params or not isinstance(params, list):
+            raise ValueError("参数错误：'params'必须是非空列表")
 
         validated_params = []
-        for param in params:
-            required_fields = ["number", "name", "titleBlockType"]
-            for field in required_fields:
-                if field not in param or not isinstance(param[field], str):
-                    raise ValueError(f"'{field}'字段必须是字符串且不能为空")
+        for i, param in enumerate(params):
+            if not isinstance(param, dict):
+                raise ValueError(f"参数[{i}]必须是字典类型")
+
+            # 必填字段检查
+            for field in ["number", "name", "titleBlockType"]:
+                if field not in param or not param[field]:
+                    raise ValueError(f"参数[{i}]中的'{field}'字段不能为空")
 
             validated_param = {
                 "number": str(param["number"]),
@@ -3158,20 +3191,14 @@ def create_sheets(ctx: Context, method: str = "CreateSheets", params: List[dict[
             }
 
             # 可选参数处理
-            if "viewName" in param:
+            if "viewName" in param and param["viewName"]:
                 validated_param["viewName"] = str(param["viewName"])
 
             validated_params.append(validated_param)
 
         from .server import get_revit_connection
         revit = get_revit_connection()
-
-        # 发送请求并获取响应
         response = revit.send_command(method, validated_params)
-
-        # 检查响应并返回结果
-        if response.get("error"):
-            ctx.log("error", f"服务器返回错误: {response['error']}")
 
         return response
 
@@ -3184,10 +3211,11 @@ def create_sheets(ctx: Context, method: str = "CreateSheets", params: List[dict[
                 "message": f"无效参数: {str(ve)}",
                 "data": params
             },
-            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+            "id": request_id
         }
     except Exception as e:
-        ctx.log("error", f"创建图纸时发生错误: {str(e)}")
+        import traceback
+        ctx.log("error", f"创建图纸时发生错误: {str(e)}\n{traceback.format_exc()}")
         return {
             "jsonrpc": "2.0",
             "error": {
@@ -3195,5 +3223,5 @@ def create_sheets(ctx: Context, method: str = "CreateSheets", params: List[dict[
                 "message": f"创建图纸时发生错误: {str(e)}",
                 "data": params
             },
-            "id": ctx.request_id if hasattr(ctx, "request_id") else None
+            "id": request_id
         }

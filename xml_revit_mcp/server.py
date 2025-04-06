@@ -11,7 +11,7 @@ from typing import AsyncIterator, Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
 from mcp.types import Tool as MCPTool
 from .revit_connection import RevitConnection
-from .resources import get_all_builtin_category, get_greeting, list_resource_templates
+from .resources import get_all_builtin_category, get_greeting, list_resources
 from .prompts import asset_creation_strategy, list_prompts
 from .tools import *
 
@@ -51,7 +51,7 @@ GENERAL_TOOLS = [
     get_commands, execute_commands, call_func,
     find_elements, update_elements, delete_elements, parameter_elements, get_locations, move_elements,
     show_elements, active_view, get_selected_elements,
-    link_dwg_and_activate_view,
+    link_dwg_and_activate_view, get_view_data
 ]
 
 
@@ -251,8 +251,8 @@ mcp.prompt()(asset_creation_strategy)
 mcp.list_prompts = types.MethodType(list_prompts, mcp)
 mcp.resource("config://BuiltInCategory")(get_all_builtin_category)
 mcp.resource("greeting://{name}")(get_greeting)
-mcp.list_resource_templates = types.MethodType(list_resource_templates, mcp)
-mcp.list_resources()
+mcp.list_resources = types.MethodType(list_resources, mcp)
+
 
 def main():
     """运行MCP服务器"""

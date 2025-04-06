@@ -1,67 +1,68 @@
-# xml.Revit.MCP
+# xml.Revit.MCP Tools Overview
 
-## Project Introduction
-xml.Revit.MCP is a tool library for integrating with Revit through the Model Context Protocol (MCP). It provides convenient methods to connect to Revit add-ons, send commands, and handle responses, suitable for Revit add-on development and other related applications.
+xml.Revit.MCP provides a comprehensive set of tools for integrating with Autodesk Revit through the Model Context Protocol (MCP). This library serves as a bridge between AI assistants and Revit, enabling powerful automation capabilities and programmatic interaction with building models.
 
-## Revit MCP
+![xml.Revit.png](imgs/xml.Revit.png)
 
-[![Last Commit](https://img.shields.io/github/last-commit/ZedMoster/revit-mcp/main?style=for-the-badge)](https://github.com/ZedMoster/revit-mcp/commits/main)
+## Key Features
 
-### Overview
+The tool library includes numerous functions for Revit automation and interaction:
 
-Revit MCP is a Python package that provides integration with Revit through the Model Context Protocol (MCP). It allows you to send commands to Revit and receive responses, enabling automation and interaction with Revit models.
+**Basic Operations:**
+- Get available commands from Revit plugin
+- Execute specified commands in Revit
+- Call specific Revit functions with parameters
+- Retrieve view data and selected elements
 
-### Features
+**Element Management:**
+- Find elements by category
+- Get element parameters and locations
+- Update element parameters
+- Delete elements
+- Show/highlight elements in current view
+- Move elements to new positions
 
-- Connect to Revit add-on socket server.
-- Send commands to create objects in Revit.
-- Handle responses and errors from Revit.
-- Manage server startup and shutdown lifecycle.
+**Creation Tools:**
+- Create levels/floors
+- Create floor plan views
+- Create grid lines
+- Create walls and floors
+- Create rooms and room tags
+- Create doors and windows
+- Create MEP elements (ducts, pipes, cable trays)
+- Create family instances
+- Link DWG files
+- Create sheets
 
-### Installation
+## Installation Requirements
 
-#### Prerequisites
+- **xml.Revit**: Version 1.3.4.3 or newer
+- **Python**: 3.10 or newer
+- **UV Package Manager**: Required for installation
+- **Revit**: Compatible with versions 2019-2024 (with plugin)
 
-- xml.Revit 1.3.4.3 or newer
-- Python 3.10 or newer
-- uv package manager:
+## Installation Process
 
-On Windows, install uv as
+1. First, install the UV package manager:
+   ```bash
+   pip install uv
+   ```
 
-```bash
-pip install uv
-```
+2. Install the revit-mcp package:
+   ```bash
+   pip install revit-mcp
+   ```
 
-Otherwise installation instructions are on their website: [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
+3. Test the installation:
+   ```bash
+   uvx revit-mcp
+   ```
+   You should see: `RevitMCPServer - INFO - Successfully connected to Revit on startup`
 
-⚠️ Do not proceed before installing UV
+## Integration with AI Assistants
 
-```bash
-pip install revit-mcp
-```
-
-if intallation fails, try to install uv first
-
-test the installation by running the command line interface of Revit MCP.
-
-```bash
-uvx revit-mcp
-```
-
-> RevitMCPServer - INFO - Successfully connected to Revit on startup
-
-Now you can use Revit MCP in your LLM .
-
-#### Claude for Desktop Integration
-
-Watch the setup instruction video (Assuming you have already installed uv)
-
-Go to Claude > Settings > Developer > Edit Config.
-
-edit `claude_desktop_config.json`
-
- to include the following:
-
+### Claude for Desktop
+Edit `claude_desktop_config.json` to include:
 ```json
 {
     "mcpServers": {
@@ -75,14 +76,8 @@ edit `claude_desktop_config.json`
 }
 ```
 
-#### Cursor integration
-
-Run **revit-mcp** without installing it permanently through uvx.
-
-Go to Cursor Settings > MCP and paste this as a command.
-
-edit `mcp.json`
-
+### Cursor
+Edit `mcp.json` to include:
 ```json
 {
     "mcpServers": {
@@ -96,12 +91,8 @@ edit `mcp.json`
 }
 ```
 
-#### cline
-
-You can use the cline command to run the command line interface of Revit MCP.
-
-edit `cline_mcp_setting.json`
-
+### Cline
+Edit `cline_mcp_setting.json` to include:
 ```json
 {
     "mcpServers": {
@@ -114,3 +105,20 @@ edit `cline_mcp_setting.json`
     }
 }
 ```
+
+## Extending Functionality
+
+You can create custom MCP DLL files to implement additional functionality by:
+1. Implementing the `xml.Revit.MCP.Public.IMCPMethod` interface
+2. Following JSON-RPC 2.0 specification for communication
+3. Compiling to a DLL and placing it in the designated MCP folder
+
+## Plugin Configuration
+
+When using the revit-mcp-plugin:
+
+1. Register the plugin with Revit
+2. Configure commands through: Add-in Modules → Revit MCP Plugin → Settings
+3. Enable the service: Add-in → Revit MCP Plugin → Revit MCP Switch
+
+Once enabled, AI assistants can discover and control your Revit program, executing the various commands provided by the xml.Revit.MCP tools library.

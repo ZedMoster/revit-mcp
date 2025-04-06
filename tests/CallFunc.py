@@ -2,11 +2,10 @@
 
 from _tcp import send_tcp_data
 
-# 定义更新元素参数的测试数据
 data = [
-    # {"name": "ClearDuplicates"},
-    # {"name": "DeleteZeroRooms"},
-    # {"name": "DimensionViewPlanGrids"},
+    {"name": "ClearDuplicates"},
+    {"name": "DeleteZeroRooms"},
+    {"name": "DimensionViewPlanGrids"},
     {"name": "新增标高", "params": {"offset": 3000}}
 ]
 
