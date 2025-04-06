@@ -1,5 +1,7 @@
 # xml.Revit.MCP Tools Overview
 
+[English](./README.md) | [中文文档](./README-zh.md)
+
 xml.Revit.MCP provides a comprehensive set of tools for integrating with Autodesk Revit through the Model Context Protocol (MCP). This library serves as a bridge between AI assistants and Revit, enabling powerful automation capabilities and programmatic interaction with building models.
 
 ![xml.Revit.png](imgs/xml.Revit.png)
