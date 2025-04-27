@@ -50,11 +50,13 @@ Revit 之间的桥梁，支持强大的自动化能力以及对建筑模型的�
 ## 安装步骤
 
 1. 安装 UV 包管理器：
+
    ```bash
    pip install uv
    ```
 
 2. 安装 revit-mcp 包：
+
    ```bash
    pip install revit-mcp
    ```
@@ -72,49 +74,56 @@ Revit 之间的桥梁，支持强大的自动化能力以及对建筑模型的�
 
 ### Claude for Desktop
 
-编辑 `claude_desktop_config.json`，添加以下内容：
-
-```json
-{
-  "mcpServers": {
-    "RevitMCPServer": {
-      "command": "uvx",
-      "args": [
-        "revit-mcp"
-      ]
-    }
-  }
-}
-```
+编辑 `claude_desktop_config.json`
 
 ### Cursor
 
-编辑 `mcp.json`，添加以下内容：
-
-```json
-{
-  "mcpServers": {
-    "RevitMCPServer": {
-      "command": "uvx",
-      "args": [
-        "revit-mcp"
-      ]
-    }
-  }
-}
-```
+编辑 `mcp.json`
 
 ### Cline
 
-编辑 `cline_mcp_setting.json`，添加以下内容：
+编辑 `cline_mcp_setting.json`
+
+添加以下内容：
 
 ```json
 {
   "mcpServers": {
     "RevitMCPServer": {
+      "disabled": false,
+      "timeout": 30,
       "command": "uvx",
-      "args": [
-        "revit-mcp"
+      "args": ["revit-mcp"],
+      "transportType": "stdio",
+      "autoApprove": [
+        "active_view",
+        "call_func",
+        "create_cable_trays",
+        "create_door_windows",
+        "create_ducts",
+        "create_family_instances",
+        "create_floors",
+        "create_floor_plan_views",
+        "create_grids",
+        "create_levels",
+        "create_pipes",
+        "create_room_separation_lines",
+        "create_room_tags",
+        "create_rooms",
+        "create_sheets",
+        "create_walls",
+        "delete_elements",
+        "execute_commands",
+        "find_elements",
+        "get_commands",
+        "get_locations",
+        "get_selected_elements",
+        "get_view_data",
+        "link_dwg_and_activate_view",
+        "move_elements",
+        "parameter_elements",
+        "show_elements",
+        "update_elements"
       ]
     }
   }

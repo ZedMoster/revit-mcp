@@ -11,12 +11,14 @@ xml.Revit.MCP provides a comprehensive set of tools for integrating with Autodes
 The tool library includes numerous functions for Revit automation and interaction:
 
 **Basic Operations:**
+
 - Get available commands from Revit plugin
 - Execute specified commands in Revit
 - Call specific Revit functions with parameters
 - Retrieve view data and selected elements
 
 **Element Management:**
+
 - Find elements by category
 - Get element parameters and locations
 - Update element parameters
@@ -25,6 +27,7 @@ The tool library includes numerous functions for Revit automation and interactio
 - Move elements to new positions
 
 **Creation Tools:**
+
 - Create levels/floors
 - Create floor plan views
 - Create grid lines
@@ -46,11 +49,13 @@ The tool library includes numerous functions for Revit automation and interactio
 ## Installation Process
 
 1. First, install the UV package manager:
+
    ```bash
    pip install uv
    ```
 
 2. Install the revit-mcp package:
+
    ```bash
    pip install revit-mcp
    ```
@@ -64,53 +69,65 @@ The tool library includes numerous functions for Revit automation and interactio
 ## Integration with AI Assistants
 
 ### Claude for Desktop
+
 Edit `claude_desktop_config.json` to include:
-```json
-{
-    "mcpServers": {
-        "RevitMCPServer": {
-            "command": "uvx",
-            "args": [
-                "revit-mcp"
-            ]
-        }
-    }
-}
-```
 
 ### Cursor
+
 Edit `mcp.json` to include:
-```json
-{
-    "mcpServers": {
-        "RevitMCPServer": {
-            "command": "uvx",
-            "args": [
-                "revit-mcp"
-            ]
-        }
-    }
-}
-```
 
 ### Cline
+
 Edit `cline_mcp_setting.json` to include:
+
 ```json
 {
-    "mcpServers": {
-        "RevitMCPServer": {
-            "command": "uvx",
-            "args": [
-                "revit-mcp"
-            ]
-        }
+  "mcpServers": {
+    "RevitMCPServer": {
+      "disabled": false,
+      "timeout": 30,
+      "command": "uvx",
+      "args": ["revit-mcp"],
+      "transportType": "stdio",
+      "autoApprove": [
+        "active_view",
+        "call_func",
+        "create_cable_trays",
+        "create_door_windows",
+        "create_ducts",
+        "create_family_instances",
+        "create_floors",
+        "create_floor_plan_views",
+        "create_grids",
+        "create_levels",
+        "create_pipes",
+        "create_room_separation_lines",
+        "create_room_tags",
+        "create_rooms",
+        "create_sheets",
+        "create_walls",
+        "delete_elements",
+        "execute_commands",
+        "find_elements",
+        "get_commands",
+        "get_locations",
+        "get_selected_elements",
+        "get_view_data",
+        "link_dwg_and_activate_view",
+        "move_elements",
+        "parameter_elements",
+        "show_elements",
+        "update_elements"
+      ]
     }
+  }
 }
 ```
 
 ## Extending Functionality
 
 You can create custom MCP DLL files to implement additional functionality by:
+
 1. Implementing the `xml.Revit.MCP.Public.IMCPMethod` interface
 2. Following JSON-RPC 2.0 specification for communication
 3. Compiling to a DLL and placing it in the designated MCP folder
