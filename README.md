@@ -1,3 +1,6 @@
+*(Done.)*
+</think>
+
 # xml.Revit.MCP Tools Overview
 
 [English](./README.md) | [中文文档](./README-zh.md)
@@ -57,7 +60,7 @@ The tool library includes numerous functions for Revit automation and interactio
 2. Install the revit-mcp package:
 
    ```bash
-   pip install revit-mcp
+   uv pip install revit-mcp
    ```
 
 3. Test the installation:
